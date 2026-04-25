@@ -1574,10 +1574,41 @@ function buildSlides() {
 // ============================================================
 // VIDEO RECORDING
 // ============================================================
-function renderFrame(ctx, slides, t) {
+// Check if time t falls in a transition zone (two slides visible)
+function isTransitionTime(t, slides) {
+    let visibleCount = 0;
+    for (let i = 0; i < slides.length; i++) {
+        const sStart = i * (SLIDE_DUR - FADE_DUR);
+        const sEnd   = sStart + SLIDE_DUR;
+        if (t >= sStart - 0.02 && t < sEnd + 0.02) visibleCount++;
+    }
+    return visibleCount >= 2;
+}
+
+// Pre-render each slide snapshot at its visual midpoint to an offscreen canvas
+function preRenderSlideSnapshots(slides) {
+    const snapshots = [];
+    for (let i = 0; i < slides.length; i++) {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = CW;
+        offCanvas.height = CH;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.clearRect(0, 0, CW, CH);
+        offCtx.fillStyle = '#000';
+        offCtx.fillRect(0, 0, CW, CH);
+        slides[i].render(offCtx, 1, 0.5);
+        snapshots.push(offCanvas);
+    }
+    return snapshots;
+}
+
+function renderFrame(ctx, slides, t, snapshots) {
     ctx.clearRect(0,0,CW,CH);
     ctx.fillStyle = '#000';
     ctx.fillRect(0,0,CW,CH);
+
+    // During recording with snapshots: use cached images for transitions
+    const useSnapshots = snapshots && isTransitionTime(t, slides);
 
     for (let i = 0; i < slides.length; i++) {
         const sStart = i * (SLIDE_DUR - FADE_DUR);
@@ -1588,17 +1619,24 @@ function renderFrame(ctx, slides, t) {
 
             if (t < sStart + FADE_DUR) {
                 alpha = clamp01((t - sStart) / FADE_DUR);
-                applyTransitionIn(ctx, alpha, i);
+                if (!useSnapshots) applyTransitionIn(ctx, alpha, i);
+                else ctx.globalAlpha = alpha;
             } else if (t > sEnd - FADE_DUR) {
                 alpha = clamp01((sEnd - t) / FADE_DUR);
-                applyTransitionOut(ctx, alpha);
+                if (!useSnapshots) applyTransitionOut(ctx, alpha);
+                else ctx.globalAlpha = alpha;
             } else {
                 ctx.globalAlpha = 1;
             }
 
-            slides[i].render(ctx, ctx.globalAlpha, slideProgress);
+            if (useSnapshots) {
+                ctx.drawImage(snapshots[i], 0, 0);
+                ctx.globalAlpha = 1;
+            } else {
+                slides[i].render(ctx, ctx.globalAlpha, slideProgress);
+            }
 
-            if ((t < sStart + FADE_DUR || t > sEnd - FADE_DUR) &&
+            if (!useSnapshots && (t < sStart + FADE_DUR || t > sEnd - FADE_DUR) &&
                 (currentTransition === 'slide' || currentTransition === 'zoom')) {
                 resetTransition(ctx);
             }
@@ -1629,6 +1667,9 @@ function recordVideo(canvas, ctx, slides) {
         rec.onstop = () => resolve(new Blob(chunks, { type: mime }));
         rec.onerror = () => reject(new Error('Ошибка MediaRecorder'));
 
+        // Pre-render slide snapshots for fast transition compositing
+        const snapshots = preRenderSlideSnapshots(slides);
+
         rec.start(100);
         let frameNum = 0;
         const totalFrames = Math.ceil((totalDur + 0.3) * TARGET_FPS);
@@ -1647,7 +1688,7 @@ function recordVideo(canvas, ctx, slides) {
                             `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
             }
 
-            renderFrame(ctx, slides, t);
+            renderFrame(ctx, slides, t, snapshots);
             frameNum++;
 
             const targetTime = recordStart + frameNum * frameInterval;
