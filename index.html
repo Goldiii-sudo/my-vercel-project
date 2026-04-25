@@ -4,18 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ReelEstate — Генератор видео-слайдшоу недвижимости</title>
+    <meta name="description" content="Создавайте профессиональные видео-презентации недвижимости для Instagram Reels и TikTok с помощью AI">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
-        body { background: #030712; color: #f9fafb; }
+        body { background: #030712; color: #f9fafb; overflow-x: hidden; }
 
+        /* ===== ANIMATED BACKGROUND ===== */
+        #particles-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; opacity: 0.5;
+        }
+        .bg-glow {
+            position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0;
+        }
+        .bg-glow-1 { top: -15%; left: -10%; width: 50vw; height: 50vw; background: rgba(99,102,241,0.08); animation: glowFloat1 12s ease-in-out infinite; }
+        .bg-glow-2 { bottom: -10%; right: -10%; width: 40vw; height: 40vw; background: rgba(168,85,247,0.06); animation: glowFloat2 15s ease-in-out infinite; }
+        .bg-glow-3 { top: 40%; left: 50%; width: 30vw; height: 30vw; background: rgba(236,72,153,0.04); animation: glowFloat3 18s ease-in-out infinite; }
+
+        @keyframes glowFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,40px)} }
+        @keyframes glowFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,-30px)} }
+        @keyframes glowFloat3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-50px)} }
+
+        /* ===== GLASS CARDS ===== */
         .glass-card {
             background: rgba(17, 24, 39, 0.7);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
             border: 1px solid rgba(75, 85, 99, 0.25);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 40px rgba(99,102,241,0.05);
         }
 
+        /* ===== DROP ZONE ===== */
         .drop-zone {
             border: 2px dashed #374151;
             transition: all 0.3s ease;
@@ -24,23 +48,41 @@
         .drop-zone:hover, .drop-zone.drag-over {
             border-color: #6366f1;
             background: rgba(99, 102, 241, 0.08);
+            box-shadow: inset 0 0 30px rgba(99,102,241,0.05);
         }
 
+        /* ===== BUTTONS ===== */
         .btn-primary {
             background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
             background-size: 200% 200%;
             animation: gradientShift 3s ease infinite;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
+        .btn-primary::before {
+            content: '';
+            position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.6s;
+        }
+        .btn-primary:hover::before { left: 100%; }
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(99, 102, 241, 0.35);
+            box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
         }
         .btn-primary:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(55, 65, 81, 0.5);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover {
+            background: rgba(75, 85, 99, 0.5);
+            border-color: rgba(99, 102, 241, 0.4);
         }
 
         @keyframes gradientShift {
@@ -48,151 +90,413 @@
             50% { background-position: 100% 50%; }
         }
 
+        /* ===== ANIMATIONS ===== */
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(16px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .fade-in-up { animation: fadeInUp 0.5s ease forwards; }
+        .fade-in-up { animation: fadeInUp 0.6s ease forwards; }
 
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse-glow {
+            0%,100% { box-shadow: 0 0 20px rgba(99,102,241,0.2); }
+            50% { box-shadow: 0 0 40px rgba(99,102,241,0.4); }
+        }
+
+        @keyframes float {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .hero-badge {
+            animation: fadeInUp 0.5s ease forwards, pulse-glow 3s ease-in-out infinite;
+        }
+
+        .hero-title { animation: fadeInUp 0.7s ease forwards; animation-delay: 0.15s; opacity: 0; }
+        .hero-subtitle { animation: fadeInUp 0.7s ease forwards; animation-delay: 0.3s; opacity: 0; }
+        .hero-features { animation: fadeInUp 0.7s ease forwards; animation-delay: 0.45s; opacity: 0; }
+
+        /* ===== FORMAT CARDS ===== */
+        .format-card {
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        .format-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.05));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .format-card:hover::before { opacity: 1; }
+        .format-card.selected {
+            border-color: #6366f1;
+            background: rgba(99,102,241,0.1);
+            box-shadow: 0 0 20px rgba(99,102,241,0.15);
+        }
+        .format-card.selected .format-check {
+            opacity: 1; transform: scale(1);
+        }
+        .format-check {
+            opacity: 0; transform: scale(0.5);
+            transition: all 0.3s;
+        }
+
+        /* ===== TRANSITION CARDS ===== */
+        .transition-card {
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .transition-card.selected {
+            border-color: #8b5cf6;
+            background: rgba(139,92,246,0.1);
+        }
+
+        /* ===== PHOTO GRID ===== */
         .photo-thumb {
             position: relative;
             overflow: hidden;
             border-radius: 12px;
             aspect-ratio: 4/3;
+            transition: transform 0.2s;
         }
+        .photo-thumb:hover { transform: scale(1.03); }
         .photo-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            width: 100%; height: 100%; object-fit: cover;
+            transition: transform 0.3s;
         }
+        .photo-thumb:hover img { transform: scale(1.1); }
         .photo-thumb .remove-btn {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 24px;
-            height: 24px;
+            position: absolute; top: 6px; right: 6px;
+            width: 24px; height: 24px;
             background: rgba(239,68,68,0.9);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s;
-            font-size: 12px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; opacity: 0; transition: opacity 0.2s; font-size: 12px;
         }
         .photo-thumb:hover .remove-btn { opacity: 1; }
 
+        /* ===== STEP INDICATOR ===== */
         .step-indicator {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 600;
-            border: 2px solid #4b5563;
-            color: #6b7280;
-            flex-shrink: 0;
-            transition: all 0.3s;
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 600;
+            border: 2px solid #4b5563; color: #6b7280;
+            flex-shrink: 0; transition: all 0.3s;
         }
         .step-indicator.active {
-            border-color: #6366f1;
-            color: #6366f1;
-            box-shadow: 0 0 12px rgba(99,102,241,0.3);
+            border-color: #6366f1; color: #6366f1;
+            box-shadow: 0 0 16px rgba(99,102,241,0.3);
+            animation: pulse-glow 1.5s ease-in-out infinite;
         }
         .step-indicator.done {
-            border-color: #22c55e;
-            background: #22c55e;
-            color: white;
+            border-color: #22c55e; background: #22c55e; color: white;
         }
 
+        /* ===== FORM INPUTS ===== */
         input, textarea, select { outline: none; }
         input:focus, textarea:focus {
             border-color: #6366f1 !important;
             box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
         }
 
+        /* ===== CANVAS CONTAINER ===== */
         .canvas-container {
-            border-radius: 16px;
-            overflow: hidden;
-            background: #000;
+            border-radius: 16px; overflow: hidden; background: #000;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
         }
         .canvas-container canvas { width: 100%; display: block; }
 
+        /* ===== SCROLLBAR ===== */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
 
+        /* ===== BADGE ===== */
         .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 10px;
-            border-radius: 9999px;
-            font-size: 12px;
-            font-weight: 500;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 10px; border-radius: 9999px;
+            font-size: 12px; font-weight: 500;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; display: inline-block; }
+
+        /* ===== LOGO ===== */
+        .logo-icon {
+            position: relative;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* ===== FEATURE PILLS ===== */
+        .feature-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 9999px;
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(99,102,241,0.15);
+            font-size: 12px; color: #a5b4fc;
+            transition: all 0.3s;
+        }
+        .feature-pill:hover {
+            background: rgba(99,102,241,0.15);
+            border-color: rgba(99,102,241,0.3);
+            transform: translateY(-2px);
+        }
+
+        /* ===== WATERMARK UPLOAD ===== */
+        .watermark-preview {
+            width: 64px; height: 64px;
+            border-radius: 12px;
+            object-fit: contain;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(75,85,99,0.3);
+        }
+
+        /* ===== URL MODAL ===== */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 50;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1; pointer-events: all;
+        }
+        .modal-content {
+            background: #111827;
+            border: 1px solid rgba(75,85,99,0.3);
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 480px; width: 90%;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body class="min-h-screen">
-    <div class="fixed inset-0 pointer-events-none" style="background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 60%);"></div>
+    <!-- Animated Background -->
+    <canvas id="particles-canvas"></canvas>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
 
     <div class="relative z-10">
-        <!-- Header -->
-        <header class="pt-10 pb-6 px-4">
+        <!-- Header / Hero -->
+        <header class="pt-10 pb-8 px-4">
             <div class="max-w-3xl mx-auto text-center">
-                <div class="inline-flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl">🎬</div>
-                    <h1 class="text-3xl md:text-4xl font-extrabold">
-                        <span class="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">ReelEstate</span>
+                <!-- Logo -->
+                <div class="inline-flex items-center gap-4 mb-4">
+                    <div class="logo-icon w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 p-2.5">
+                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 8C6 6.89543 6.89543 6 8 6H32C33.1046 6 34 6.89543 34 8V28C34 29.1046 33.1046 30 32 30H8C6.89543 30 6 29.1046 6 28V8Z" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                            <path d="M6 12H34" stroke="white" stroke-width="2.2"/>
+                            <circle cx="9" cy="9" r="1.2" fill="white"/>
+                            <circle cx="13" cy="9" r="1.2" fill="white"/>
+                            <path d="M15 20L22 24.5L22 15.5L15 20Z" fill="white"/>
+                            <path d="M10 34H30" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                            <path d="M16 30V34" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                            <path d="M24 30V34" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-black tracking-tight hero-title">
+                        <span class="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Reel</span><span class="text-white">Estate</span>
                     </h1>
                 </div>
-                <p class="text-gray-400 text-base md:text-lg">Генератор видео-слайдшоу для объектов недвижимости</p>
-                <p class="text-gray-600 text-sm mt-1">Загрузите фото → Заполните данные → Получите готовое видео</p>
+
+                <!-- Badge -->
+                <div class="mb-4">
+                    <span class="hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                        AI-генератор видео для соцсетей
+                    </span>
+                </div>
+
+                <!-- Subtitle -->
+                <p class="hero-subtitle text-gray-300 text-lg md:text-xl font-light leading-relaxed max-w-xl mx-auto">
+                    Превращайте фотографии недвижимости в
+                    <span class="font-semibold text-white">продающие видео</span>
+                    для Instagram Reels и TikTok за минуту
+                </p>
+
+                <!-- Features -->
+                <div class="hero-features flex flex-wrap justify-center gap-2 mt-5">
+                    <span class="feature-pill">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                        Ken Burns эффекты
+                    </span>
+                    <span class="feature-pill">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                        9:16 / 1:1 / 16:9
+                    </span>
+                    <span class="feature-pill">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                        AI подписи Gemini
+                    </span>
+                    <span class="feature-pill">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                        Свой логотип
+                    </span>
+                    <span class="feature-pill">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                        Экспорт в MP4
+                    </span>
+                </div>
+
+                <!-- How it works -->
+                <div class="mt-6 flex items-center justify-center gap-3 text-xs text-gray-500">
+                    <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold">1</span> Загрузите фото</span>
+                    <svg class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-[10px] font-bold">2</span> Настройте стиль</span>
+                    <svg class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center text-[10px] font-bold">3</span> Скачайте видео</span>
+                </div>
             </div>
         </header>
 
-        <main class="max-w-3xl mx-auto px-4 pb-16 space-y-6">
+        <main class="max-w-3xl mx-auto px-4 pb-16 space-y-5">
 
-            <!-- API Key -->
+            <!-- === API Key === -->
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.05s">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-base font-semibold flex items-center gap-2">
-                        <span class="text-lg">🔑</span> API ключ Gemini
+                        <span class="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center text-sm">🔑</span>
+                        API ключ Gemini
                     </h2>
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener"
-                       class="text-indigo-400 hover:text-indigo-300 text-xs transition">Получить ключ →</a>
+                       class="text-indigo-400 hover:text-indigo-300 text-xs transition flex items-center gap-1">
+                        Получить ключ
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
                 </div>
                 <div class="flex gap-2">
                     <input type="password" id="api-key"
                            class="flex-1 bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
                            placeholder="AIzaSy...">
                     <button onclick="testApiKey()" id="test-api-btn"
-                            class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700/50 rounded-xl text-sm font-medium transition whitespace-nowrap">
+                            class="px-5 py-2.5 btn-secondary rounded-xl text-sm font-medium whitespace-nowrap">
                         Проверить
                     </button>
                 </div>
                 <div id="api-status" class="mt-2 text-xs hidden"></div>
             </section>
 
-            <!-- Photos -->
+            <!-- === Video Format === -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.08s">
+                <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
+                    <span class="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center text-sm">📐</span>
+                    Формат видео
+                    <span class="text-xs font-normal text-gray-600 ml-1">— выберите под платформу</span>
+                </h2>
+                <div class="grid grid-cols-3 gap-3" id="format-selector">
+                    <div class="format-card rounded-xl p-4 bg-gray-900/50 text-center" data-format="9:16" onclick="selectFormat('9:16')">
+                        <div class="relative mx-auto mb-2 flex items-center justify-center">
+                            <div class="w-8 h-14 rounded-md border-2 border-current text-indigo-400 flex items-center justify-center text-[9px] font-bold">9:16</div>
+                        </div>
+                        <div class="text-sm font-semibold text-white">Reels / TikTok</div>
+                        <div class="text-[10px] text-gray-500 mt-0.5">1080 × 1920</div>
+                        <div class="format-check absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                    </div>
+                    <div class="format-card rounded-xl p-4 bg-gray-900/50 text-center" data-format="1:1" onclick="selectFormat('1:1')">
+                        <div class="relative mx-auto mb-2 flex items-center justify-center">
+                            <div class="w-11 h-11 rounded-md border-2 border-current text-purple-400 flex items-center justify-center text-[9px] font-bold">1:1</div>
+                        </div>
+                        <div class="text-sm font-semibold text-white">Instagram</div>
+                        <div class="text-[10px] text-gray-500 mt-0.5">1080 × 1080</div>
+                        <div class="format-check absolute top-2 right-2 w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
+                            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                    </div>
+                    <div class="format-card rounded-xl p-4 bg-gray-900/50 text-center selected" data-format="16:9" onclick="selectFormat('16:9')">
+                        <div class="relative mx-auto mb-2 flex items-center justify-center">
+                            <div class="w-14 h-8 rounded-md border-2 border-current text-pink-400 flex items-center justify-center text-[9px] font-bold">16:9</div>
+                        </div>
+                        <div class="text-sm font-semibold text-white">YouTube</div>
+                        <div class="text-[10px] text-gray-500 mt-0.5">1920 × 1080</div>
+                        <div class="format-check absolute top-2 right-2 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+                            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- === Transition Style === -->
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.1s">
+                <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
+                    <span class="w-7 h-7 rounded-lg bg-cyan-500/15 flex items-center justify-center text-sm">✨</span>
+                    Стиль перехода
+                </h2>
+                <div class="grid grid-cols-4 gap-2" id="transition-selector">
+                    <div class="transition-card rounded-xl p-3 bg-gray-900/50 text-center selected" data-transition="fade" onclick="selectTransition('fade')">
+                        <div class="text-lg mb-1">🌫</div>
+                        <div class="text-xs font-medium text-white">Затухание</div>
+                    </div>
+                    <div class="transition-card rounded-xl p-3 bg-gray-900/50 text-center" data-transition="slide" onclick="selectTransition('slide')">
+                        <div class="text-lg mb-1">➡️</div>
+                        <div class="text-xs font-medium text-white">Слайд</div>
+                    </div>
+                    <div class="transition-card rounded-xl p-3 bg-gray-900/50 text-center" data-transition="zoom" onclick="selectTransition('zoom')">
+                        <div class="text-lg mb-1">🔍</div>
+                        <div class="text-xs font-medium text-white">Зум</div>
+                    </div>
+                    <div class="transition-card rounded-xl p-3 bg-gray-900/50 text-center" data-transition="blur" onclick="selectTransition('blur')">
+                        <div class="text-lg mb-1">💫</div>
+                        <div class="text-xs font-medium text-white">Блюр</div>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                        <input type="checkbox" id="ken-burns-toggle" checked
+                               class="w-4 h-4 rounded bg-gray-800 border-gray-600 text-indigo-500 focus:ring-indigo-500">
+                        <span>Ken Burns эффект</span>
+                        <span class="text-[10px] text-gray-600">(плавный зум и панорама на фото)</span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- === Photos === -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.12s">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-base font-semibold flex items-center gap-2">
-                        <span class="text-lg">📸</span> Фотографии объекта
+                        <span class="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-sm">📸</span>
+                        Фотографии объекта
                     </h2>
-                    <span id="photo-count-badge" class="badge bg-gray-800 text-gray-400 hidden">
-                        <span id="photo-count-text">0</span> / 20
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openUrlModal()" class="text-xs text-indigo-400 hover:text-indigo-300 transition flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            Вставить URL
+                        </button>
+                        <span id="photo-count-badge" class="badge bg-gray-800 text-gray-400 hidden">
+                            <span id="photo-count-text">0</span> / 20
+                        </span>
+                    </div>
                 </div>
                 <div id="drop-zone" class="drop-zone rounded-xl p-8 md:p-10 text-center">
-                    <div class="text-4xl mb-3 opacity-60">📁</div>
+                    <div class="mb-3 opacity-60">
+                        <svg class="w-10 h-10 mx-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
                     <p class="text-gray-400 text-sm mb-1">Перетащите фото сюда или нажмите для выбора</p>
                     <p class="text-gray-600 text-xs">PNG, JPG, WEBP — от 5 до 20 фото</p>
                     <input type="file" id="file-input" multiple accept="image/*" class="hidden">
@@ -201,10 +505,41 @@
                 <div id="photo-error" class="mt-2 text-xs text-red-400 hidden"></div>
             </section>
 
-            <!-- Property Data -->
-            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.15s">
+            <!-- === Logo / Watermark === -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.14s">
+                <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                    <span class="w-7 h-7 rounded-lg bg-pink-500/15 flex items-center justify-center text-sm">🏷</span>
+                    Логотип / Водяной знак
+                    <span class="text-xs font-normal text-gray-600">(необязательно)</span>
+                </h2>
+                <div class="flex items-center gap-4">
+                    <div id="watermark-container" class="flex items-center gap-3">
+                        <div id="watermark-placeholder" class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-700 flex items-center justify-center cursor-pointer hover:border-indigo-500 transition" onclick="document.getElementById('watermark-input').click()">
+                            <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </div>
+                        <img id="watermark-preview-img" class="watermark-preview hidden" alt="Logo">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-400">Загрузите PNG логотип — он появится в углу каждого слайда</p>
+                        <div class="flex items-center gap-3 mt-2">
+                            <select id="watermark-position" class="bg-gray-900/80 border border-gray-700/50 rounded-lg px-3 py-1.5 text-xs text-white">
+                                <option value="top-left">Сверху-слева</option>
+                                <option value="top-right" selected>Сверху-справа</option>
+                                <option value="bottom-left">Снизу-слева</option>
+                                <option value="bottom-right">Снизу-справа</option>
+                            </select>
+                            <button id="remove-watermark-btn" onclick="removeWatermark()" class="text-xs text-red-400 hover:text-red-300 hidden">Удалить</button>
+                        </div>
+                    </div>
+                    <input type="file" id="watermark-input" accept="image/png,image/svg+xml,image/webp" class="hidden" onchange="handleWatermarkUpload(event)">
+                </div>
+            </section>
+
+            <!-- === Property Data === -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.16s">
                 <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
-                    <span class="text-lg">📋</span> Данные объекта
+                    <span class="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center text-sm">📋</span>
+                    Данные объекта
                 </h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -240,10 +575,11 @@
                 </div>
             </section>
 
-            <!-- Contacts -->
-            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.2s">
+            <!-- === Contacts === -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.18s">
                 <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
-                    <span class="text-lg">📞</span> Контакты
+                    <span class="w-7 h-7 rounded-lg bg-orange-500/15 flex items-center justify-center text-sm">📞</span>
+                    Контакты
                     <span class="text-xs font-normal text-gray-600">(для последнего слайда)</span>
                 </h2>
                 <input type="text" id="contact-info"
@@ -251,18 +587,23 @@
                        placeholder="+7 (999) 123-45-67 • Агентство «Недвижимость PRO»">
             </section>
 
-            <!-- Generate -->
-            <div class="text-center pt-2 fade-in-up" style="animation-delay:0.25s">
+            <!-- === Generate Button === -->
+            <div class="text-center pt-3 fade-in-up" style="animation-delay:0.2s">
                 <button id="generate-btn" onclick="startGeneration()"
-                        class="btn-primary px-14 py-4 rounded-2xl text-base font-bold text-white tracking-wide">
-                    🎬 Создать видео
+                        class="btn-primary px-16 py-4.5 rounded-2xl text-base font-bold text-white tracking-wide">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Создать видео
+                    </span>
                 </button>
+                <p class="text-xs text-gray-600 mt-2">Видео создается полностью в вашем браузере</p>
             </div>
 
-            <!-- Progress -->
+            <!-- === Progress === -->
             <section id="progress-section" class="glass-card rounded-2xl p-5 hidden">
                 <h2 class="text-base font-semibold mb-4 flex items-center gap-2">
-                    <span class="text-lg">⏳</span> Генерация видео
+                    <span class="w-7 h-7 rounded-lg bg-indigo-500/15 flex items-center justify-center text-sm spinner">⏳</span>
+                    Генерация видео
                     <span id="progress-percent" class="ml-auto text-indigo-400 font-mono text-sm">0%</span>
                 </h2>
                 <div class="bg-gray-800/80 rounded-full h-2.5 overflow-hidden mb-4">
@@ -290,49 +631,91 @@
                 </div>
             </section>
 
-            <!-- Preview & Download -->
+            <!-- === Preview & Download === -->
             <section id="preview-section" class="glass-card rounded-2xl p-5 hidden">
                 <h2 class="text-base font-semibold mb-4 flex items-center gap-2">
-                    <span class="text-lg">🎬</span> Готовое видео
+                    <span class="w-7 h-7 rounded-lg bg-green-500/15 flex items-center justify-center text-sm">🎬</span>
+                    Готовое видео
                 </h2>
                 <div class="canvas-container">
                     <canvas id="preview-canvas" width="1280" height="720"></canvas>
                 </div>
-                <p class="text-center text-xs text-gray-500 mt-2">▶ Нажмите на видео для предпросмотра</p>
+                <p class="text-center text-xs text-gray-500 mt-2">Нажмите на видео для предпросмотра</p>
                 <div class="mt-5 flex flex-col items-center gap-3">
                     <button id="download-btn" onclick="downloadVideo()"
-                            class="btn-primary px-10 py-3.5 rounded-2xl text-base font-bold text-white">
-                        ⬇️ Скачать видео
+                            class="btn-primary px-10 py-3.5 rounded-2xl text-base font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Скачать видео
                     </button>
                     <p id="download-info" class="text-xs text-gray-500"></p>
                 </div>
             </section>
 
-            <footer class="text-center text-xs text-gray-700 pt-4">
-                ReelEstate — Видео генерируется полностью в браузере
+            <!-- === Footer === -->
+            <footer class="text-center pt-6 pb-2">
+                <div class="flex items-center justify-center gap-2 mb-2">
+                    <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-1">
+                        <svg viewBox="0 0 40 40" fill="none" class="w-full h-full">
+                            <path d="M6 8C6 6.89543 6.89543 6 8 6H32C33.1046 6 34 6.89543 34 8V28C34 29.1046 33.1046 30 32 30H8C6.89543 30 6 29.1046 6 28V8Z" stroke="white" stroke-width="3"/>
+                            <path d="M15 20L22 24.5L22 15.5L15 20Z" fill="white"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">ReelEstate</span>
+                </div>
+                <p class="text-xs text-gray-700">Видео генерируется полностью в браузере — данные не покидают ваш компьютер</p>
             </footer>
         </main>
     </div>
 
+    <!-- === URL Import Modal === -->
+    <div id="url-modal" class="modal-overlay" onclick="if(event.target===this)closeUrlModal()">
+        <div class="modal-content">
+            <h3 class="text-base font-semibold mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                Импорт фото по URL
+            </h3>
+            <p class="text-xs text-gray-500 mb-3">Вставьте ссылки на изображения (каждая на новой строке)</p>
+            <textarea id="url-input" rows="5"
+                      class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 transition resize-none"
+                      placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg&#10;https://example.com/photo3.jpg"></textarea>
+            <div id="url-error" class="mt-2 text-xs text-red-400 hidden"></div>
+            <div id="url-loading" class="mt-2 text-xs text-indigo-400 hidden">Загрузка изображений...</div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button onclick="closeUrlModal()" class="px-4 py-2 btn-secondary rounded-xl text-sm">Отмена</button>
+                <button onclick="importUrls()" class="px-5 py-2 btn-primary rounded-xl text-sm font-medium text-white">Загрузить</button>
+            </div>
+        </div>
+    </div>
+
 <script>
 // ============================================================
-// CONSTANTS
+// CONSTANTS & FORMAT CONFIG
 // ============================================================
-const CW = 1280;
-const CH = 720;
+const FORMATS = {
+    '9:16':  { w: 1080, h: 1920, label: 'Reels / TikTok' },
+    '1:1':   { w: 1080, h: 1080, label: 'Instagram' },
+    '16:9':  { w: 1920, h: 1080, label: 'YouTube' }
+};
+
+let CW = 1920;
+let CH = 1080;
+let currentFormat = '16:9';
+let currentTransition = 'fade';
+
 const SLIDE_DUR = 3.0;
-const FADE_DUR = 0.6;
+const FADE_DUR  = 0.6;
 const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ============================================================
 // STATE
 // ============================================================
-let photos = [];          // { file, img, objectURL }
+let photos = [];
 let captions = [];
 let videoBlob = null;
 let isGenerating = false;
-let slidesSnapshot = [];  // store last generated slides for preview replay
+let slidesSnapshot = [];
+let watermarkImg = null;
 
 // ============================================================
 // DOM
@@ -355,6 +738,73 @@ const previewCanvas= $('#preview-canvas');
 const downloadInfo = $('#download-info');
 
 // ============================================================
+// PARTICLES BACKGROUND
+// ============================================================
+function initParticles() {
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    const PARTICLE_COUNT = 50;
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            r: Math.random() * 2 + 0.5,
+            alpha: Math.random() * 0.4 + 0.1,
+            color: ['99,102,241', '139,92,246', '168,85,247', '236,72,153'][Math.floor(Math.random() * 4)]
+        });
+    }
+
+    function drawParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if (p.x < 0) p.x = canvas.width;
+            if (p.x > canvas.width) p.x = 0;
+            if (p.y < 0) p.y = canvas.height;
+            if (p.y > canvas.height) p.y = 0;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${p.color},${p.alpha})`;
+            ctx.fill();
+
+            // draw connections
+            for (let j = i + 1; j < particles.length; j++) {
+                const q = particles[j];
+                const dx = p.x - q.x;
+                const dy = p.y - q.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 150) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(q.x, q.y);
+                    ctx.strokeStyle = `rgba(99,102,241,${0.06 * (1 - dist / 150)})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+}
+
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -366,7 +816,125 @@ document.addEventListener('DOMContentLoaded', () => {
     dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
     dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+
+    initParticles();
+    selectFormat('9:16'); // default to Reels/TikTok
 });
+
+// ============================================================
+// FORMAT SELECTION
+// ============================================================
+function selectFormat(fmt) {
+    currentFormat = fmt;
+    const f = FORMATS[fmt];
+    CW = f.w;
+    CH = f.h;
+    previewCanvas.width = CW;
+    previewCanvas.height = CH;
+
+    document.querySelectorAll('.format-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.format === fmt);
+    });
+}
+
+// ============================================================
+// TRANSITION SELECTION
+// ============================================================
+function selectTransition(t) {
+    currentTransition = t;
+    document.querySelectorAll('.transition-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.transition === t);
+    });
+}
+
+// ============================================================
+// WATERMARK
+// ============================================================
+function handleWatermarkUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+            watermarkImg = img;
+            $('#watermark-preview-img').src = ev.target.result;
+            $('#watermark-preview-img').classList.remove('hidden');
+            $('#watermark-placeholder').classList.add('hidden');
+            $('#remove-watermark-btn').classList.remove('hidden');
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeWatermark() {
+    watermarkImg = null;
+    $('#watermark-preview-img').classList.add('hidden');
+    $('#watermark-placeholder').classList.remove('hidden');
+    $('#remove-watermark-btn').classList.add('hidden');
+    $('#watermark-input').value = '';
+}
+
+// ============================================================
+// URL IMPORT
+// ============================================================
+function openUrlModal() {
+    $('#url-modal').classList.add('active');
+    $('#url-input').value = '';
+    $('#url-error').classList.add('hidden');
+    $('#url-loading').classList.add('hidden');
+}
+
+function closeUrlModal() {
+    $('#url-modal').classList.remove('active');
+}
+
+async function importUrls() {
+    const raw = $('#url-input').value.trim();
+    if (!raw) { showUrlError('Вставьте хотя бы один URL'); return; }
+
+    const urls = raw.split('\n').map(u => u.trim()).filter(u => u.startsWith('http'));
+    if (!urls.length) { showUrlError('Не найдено валидных URL'); return; }
+
+    $('#url-error').classList.add('hidden');
+    $('#url-loading').classList.remove('hidden');
+
+    let loaded = 0;
+    for (const url of urls) {
+        if (photos.length >= 20) break;
+        try {
+            const img = await loadImgFromUrl(url);
+            photos.push({ file: null, img, objectURL: url, isUrl: true });
+            loaded++;
+        } catch (e) {
+            console.warn('Failed to load:', url, e);
+        }
+    }
+
+    $('#url-loading').classList.add('hidden');
+    if (loaded === 0) {
+        showUrlError('Не удалось загрузить ни одного изображения. Проверьте CORS.');
+    } else {
+        renderGrid();
+        closeUrlModal();
+    }
+}
+
+function loadImgFromUrl(url) {
+    return new Promise((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => res(img);
+        img.onerror = () => rej(new Error('Load failed'));
+        img.src = url;
+    });
+}
+
+function showUrlError(m) {
+    $('#url-error').textContent = m;
+    $('#url-error').classList.remove('hidden');
+}
 
 // ============================================================
 // PHOTO HANDLING
@@ -395,7 +963,11 @@ function loadImg(file) {
     });
 }
 
-function removePhoto(i) { URL.revokeObjectURL(photos[i].objectURL); photos.splice(i,1); renderGrid(); }
+function removePhoto(i) {
+    if (!photos[i].isUrl) URL.revokeObjectURL(photos[i].objectURL);
+    photos.splice(i,1);
+    renderGrid();
+}
 
 function renderGrid() {
     const n = photos.length;
@@ -448,21 +1020,16 @@ async function testApiKey() {
     try {
         await geminiFetch('Ответь одним словом: ок', key);
         localStorage.setItem('gemini_api_key', key);
-        st.textContent = '✓ Ключ действителен'; st.className='mt-2 text-xs text-green-400';
+        st.textContent = 'Ключ действителен'; st.className='mt-2 text-xs text-green-400';
     } catch (e) {
-        st.textContent = '✗ ' + e.message; st.className='mt-2 text-xs text-red-400';
+        st.textContent = 'Ошибка: ' + e.message; st.className='mt-2 text-xs text-red-400';
     }
     btn.disabled = false; btn.textContent = 'Проверить';
 }
 
 // ============================================================
-// CAPTION GENERATION — batch + diversity engine
+// CAPTION GENERATION
 // ============================================================
-
-/* Parse a numbered list like:
-   1. Текст подписи
-   2. Другой текст
-   ...into an array of strings */
 function parseNumberedList(raw) {
     return raw
         .split('\n')
@@ -470,9 +1037,9 @@ function parseNumberedList(raw) {
         .filter(l => l.length > 0);
 }
 
-/* --- STEP 1: batch-generate all captions at once --- */
 async function generateBatchCaptions(key, name, price, area, district, features) {
     const n = photos.length;
+    const fmtLabel = FORMATS[currentFormat].label;
 
     const prompt = `Ты — лучший копирайтер рекламы недвижимости в России. Пишешь для соцсетей и видео-презентаций.
 
@@ -482,6 +1049,7 @@ async function generateBatchCaptions(key, name, price, area, district, features)
 Район: ${district}
 Преимущества: ${features}
 Количество фото: ${n}
+Платформа: ${fmtLabel}
 
 Задача: придумай ${n} подписей — по одной для каждого слайда видео-презентации.
 
@@ -515,25 +1083,23 @@ async function generateBatchCaptions(key, name, price, area, district, features)
 2. [подпись для слайда 2]
 ...`;
 
-    setProgress(5, 'Gemini генерирует все подписи разом…');
+    setProgress(5, 'Gemini генерирует все подписи разом...');
 
     const raw = await geminiFetch(prompt, key, 1200, 1.0);
-    let captions = parseNumberedList(raw);
+    let caps = parseNumberedList(raw);
 
-    // pad or trim to exact count
-    while (captions.length < n) captions.push(`Фото ${captions.length + 1}`);
-    if (captions.length > n) captions = captions.slice(0, n);
+    while (caps.length < n) caps.push(`Фото ${caps.length + 1}`);
+    if (caps.length > n) caps = caps.slice(0, n);
 
-    return captions;
+    return caps;
 }
 
-/* --- STEP 2: second pass — review & rewrite similar / weak ones --- */
-async function diversityReview(key, captions, name, price) {
-    setProgress(18, 'Проверка на разнообразие…');
+async function diversityReview(key, caps, name, price) {
+    setProgress(18, 'Проверка на разнообразие...');
 
-    const list = captions.map((c, i) => `${i + 1}. ${c}`).join('\n');
+    const list = caps.map((c, i) => `${i + 1}. ${c}`).join('\n');
 
-    const prompt = `Ты — критик рекламных текстов. Перед тобой ${captions.length} подписей для видео-слайдшоу объекта «${name}» (${price}).
+    const prompt = `Ты — критик рекламных текстов. Перед тобой ${caps.length} подписей для видео-слайдшоу объекта «${name}» (${price}).
 
 Подписи:
 ${list}
@@ -546,7 +1112,7 @@ ${list}
 ⚠️ ОБЯЗАТЕЛЬНО: каждая новая подпись должна быть уникальным приёмом.
 Не дублируй структуру «Прилагательное + Существительное + Глагол».
 
-Формат — ТОЛЬКО пронумерованный список ВСЕХ ${captions.length} подписей (даже те, что не изменились):
+Формат — ТОЛЬКО пронумерованный список ВСЕХ ${caps.length} подписей (даже те, что не изменились):
 1. [подпись]
 2. [подпись]
 ...`;
@@ -554,12 +1120,10 @@ ${list}
     const raw = await geminiFetch(prompt, key, 1200, 0.95);
     const fixed = parseNumberedList(raw);
 
-    if (fixed.length === captions.length) return fixed;
-    // if parse failed, return originals
-    return captions;
+    if (fixed.length === caps.length) return fixed;
+    return caps;
 }
 
-/* --- MAIN ENTRY --- */
 async function generateCaptions() {
     const key = $('#api-key').value.trim();
     if (!key) throw new Error('Не указан API ключ Gemini');
@@ -570,29 +1134,24 @@ async function generateCaptions() {
     const district = $('#prop-district').value.trim();
     const features = $('#prop-features').value.trim();
 
-    // STEP 1: batch generate
-    setProgress(3, 'Запрос к Gemini (batch)…');
-    let captions = await generateBatchCaptions(key, name, price, area, district, features);
+    setProgress(3, 'Запрос к Gemini (batch)...');
+    let caps = await generateBatchCaptions(key, name, price, area, district, features);
 
-    setProgress(15, `Получено ${captions.length} подписей ✓`);
+    setProgress(15, `Получено ${caps.length} подписей`);
     await delay(400);
 
-    // STEP 2: diversity review & rewrite
     try {
-        captions = await diversityReview(key, captions, name, price);
+        caps = await diversityReview(key, caps, name, price);
     } catch (e) {
         console.warn('Diversity review skipped:', e.message);
-        // keep originals — non-critical
     }
 
-    return captions;
+    return caps;
 }
 
 // ============================================================
 // CANVAS — RENDERING HELPERS
 // ============================================================
-
-/* Cover-fit image into box */
 function drawImageCover(ctx, img, x, y, w, h) {
     const ir = img.naturalWidth / img.naturalHeight;
     const br = w / h;
@@ -602,7 +1161,6 @@ function drawImageCover(ctx, img, x, y, w, h) {
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
-/* Word-wrap text into lines */
 function wrapText(ctx, text, maxW) {
     const words = text.split(/\s+/);
     const lines = [];
@@ -620,7 +1178,6 @@ function wrapText(ctx, text, maxW) {
     return lines;
 }
 
-/* Draw centered text with shadow, supports multi-line */
 function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
     ctx.save();
     ctx.textAlign = 'center';
@@ -640,7 +1197,6 @@ function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
     ctx.restore();
 }
 
-/* Bottom gradient overlay */
 function drawBottomGrad(ctx, h) {
     const g = ctx.createLinearGradient(0, CH-h, 0, CH);
     g.addColorStop(0, 'rgba(0,0,0,0)');
@@ -650,22 +1206,141 @@ function drawBottomGrad(ctx, h) {
     ctx.fillRect(0, CH-h, CW, h);
 }
 
-/* ============================================================
-   SLIDE RENDERERS
-   ============================================================ */
+// Scale factors relative to 1920x1080 base
+function sf() { return Math.min(CW, CH) / 1080; }
 
-function renderTitleSlide(ctx, alpha) {
+// ============================================================
+// WATERMARK RENDERING
+// ============================================================
+function drawWatermark(ctx) {
+    if (!watermarkImg) return;
+    const pos = $('#watermark-position').value;
+    const scale = sf();
+    const maxS = 80 * scale;
+    const ratio = watermarkImg.naturalWidth / watermarkImg.naturalHeight;
+    let ww, wh;
+    if (ratio > 1) { ww = maxS; wh = maxS / ratio; }
+    else { wh = maxS; ww = maxS * ratio; }
+
+    const pad = 20 * scale;
+    let wx, wy;
+    if (pos === 'top-left')     { wx = pad; wy = pad; }
+    else if (pos === 'top-right')    { wx = CW - ww - pad; wy = pad; }
+    else if (pos === 'bottom-left')  { wx = pad; wy = CH - wh - pad; }
+    else                              { wx = CW - ww - pad; wy = CH - wh - pad; }
+
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(watermarkImg, wx, wy, ww, wh);
+    ctx.restore();
+}
+
+// ============================================================
+// KEN BURNS EFFECT
+// ============================================================
+function getKenBurnsParams(idx) {
+    const patterns = [
+        { startScale: 1.0, endScale: 1.15, startX: 0, startY: 0, endX: -0.05, endY: -0.03 },
+        { startScale: 1.15, endScale: 1.0, startX: -0.05, startY: -0.05, endX: 0, endY: 0 },
+        { startScale: 1.0, endScale: 1.12, startX: 0.03, startY: 0, endX: -0.03, endY: -0.04 },
+        { startScale: 1.12, endScale: 1.0, startX: -0.03, startY: 0.02, endX: 0.02, endY: -0.02 },
+        { startScale: 1.0, endScale: 1.18, startX: 0, startY: -0.02, endX: -0.04, endY: 0.02 },
+        { startScale: 1.1, endScale: 1.0, startX: 0.04, startY: 0.03, endX: 0, endY: 0 },
+    ];
+    return patterns[idx % patterns.length];
+}
+
+function drawImageWithKenBurns(ctx, img, progress, idx) {
+    const kenBurns = $('#ken-burns-toggle').checked;
+    if (!kenBurns) {
+        drawImageCover(ctx, img, 0, 0, CW, CH);
+        return;
+    }
+
+    const kb = getKenBurnsParams(idx);
+    const t = progress; // 0 to 1
+    const scale = kb.startScale + (kb.endScale - kb.startScale) * t;
+    const tx = (kb.startX + (kb.endX - kb.startX) * t) * CW;
+    const ty = (kb.startY + (kb.endY - kb.startY) * t) * CH;
+
+    ctx.save();
+    ctx.translate(CW/2 + tx, CH/2 + ty);
+    ctx.scale(scale, scale);
+    ctx.translate(-CW/2, -CH/2);
+    drawImageCover(ctx, img, 0, 0, CW, CH);
+    ctx.restore();
+}
+
+// ============================================================
+// TRANSITION EFFECTS
+// ============================================================
+function applyTransitionIn(ctx, alpha, slideIdx) {
+    const t = currentTransition;
+    if (t === 'fade') {
+        ctx.globalAlpha = alpha;
+    } else if (t === 'slide') {
+        const offset = (1 - alpha) * CW;
+        ctx.save();
+        ctx.translate(offset, 0);
+        ctx.globalAlpha = 1;
+    } else if (t === 'zoom') {
+        const scale = 0.7 + 0.3 * alpha;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(CW/2, CH/2);
+        ctx.scale(scale, scale);
+        ctx.translate(-CW/2, -CH/2);
+    } else if (t === 'blur') {
+        ctx.globalAlpha = alpha;
+    }
+}
+
+function applyTransitionOut(ctx, alpha) {
+    const t = currentTransition;
+    if (t === 'slide') {
+        const offset = -(1 - alpha) * CW;
+        ctx.save();
+        ctx.translate(offset, 0);
+        ctx.globalAlpha = 1;
+    } else if (t === 'zoom') {
+        const scale = 1 + (1 - alpha) * 0.3;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(CW/2, CH/2);
+        ctx.scale(scale, scale);
+        ctx.translate(-CW/2, -CH/2);
+    } else {
+        ctx.globalAlpha = alpha;
+    }
+}
+
+function resetTransition(ctx) {
+    if (currentTransition === 'slide' || currentTransition === 'zoom') {
+        ctx.restore();
+    }
+}
+
+// ============================================================
+// SLIDE RENDERERS
+// ============================================================
+function renderTitleSlide(ctx, alpha, slideProgress) {
     const name  = $('#prop-name').value.trim() || 'Объект недвижимости';
     const price = $('#prop-price').value.trim();
     const area  = $('#prop-area').value.trim();
     const dist  = $('#prop-district').value.trim();
+    const s = sf();
 
     ctx.save();
     ctx.globalAlpha = alpha;
 
     if (photos.length) {
-        drawImageCover(ctx, photos[0].img, 0, 0, CW, CH);
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        drawImageWithKenBurns(ctx, photos[0].img, slideProgress || 0, 0);
+        // dark overlay with gradient
+        const g = ctx.createLinearGradient(0, 0, 0, CH);
+        g.addColorStop(0, 'rgba(0,0,0,0.4)');
+        g.addColorStop(0.5, 'rgba(0,0,0,0.6)');
+        g.addColorStop(1, 'rgba(0,0,0,0.7)');
+        ctx.fillStyle = g;
         ctx.fillRect(0, 0, CW, CH);
     } else {
         const bg = ctx.createLinearGradient(0,0,CW,CH);
@@ -676,66 +1351,80 @@ function renderTitleSlide(ctx, alpha) {
 
     ctx.textAlign = 'center';
 
-    // Decorative accent
+    // Decorative accent line
+    const accentW = 80 * s;
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-40, CH/2-145, 80, 4);
+    ctx.fillRect(CW/2-accentW/2, CH/2 - 150*s, accentW, 4*s);
 
     // Name
-    ctx.font = 'bold 52px Inter, system-ui, sans-serif';
+    ctx.font = `bold ${Math.round(52*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, name, CW/2, CH/2 - 55, CW-140, 60);
+    drawCenteredText(ctx, name, CW/2, CH/2 - 55*s, CW-140*s, 60*s);
 
     // Price
     if (price) {
-        ctx.font = '700 42px Inter, system-ui, sans-serif';
+        ctx.font = `700 ${Math.round(42*s)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2 + 25, CW-140, 48);
+        drawCenteredText(ctx, price, CW/2, CH/2 + 25*s, CW-140*s, 48*s);
     }
 
     // Subline
-    const sub = [area, dist].filter(Boolean).join(' • ');
+    const sub = [area, dist].filter(Boolean).join(' \u2022 ');
     if (sub) {
-        ctx.font = '400 20px Inter, system-ui, sans-serif';
+        ctx.font = `400 ${Math.round(20*s)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#94a3b8';
-        drawCenteredText(ctx, sub, CW/2, CH/2 + 90, CW-140, 28);
+        drawCenteredText(ctx, sub, CW/2, CH/2 + 90*s, CW-140*s, 28*s);
     }
 
+    drawWatermark(ctx);
     ctx.restore();
 }
 
-function renderPhotoSlide(ctx, idx, alpha) {
+function renderPhotoSlide(ctx, idx, alpha, slideProgress) {
     const photo   = photos[idx];
     const caption = captions[idx] || `Фото ${idx+1}`;
+    const s = sf();
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    drawImageCover(ctx, photo.img, 0, 0, CW, CH);
-    drawBottomGrad(ctx, 200);
 
-    // Caption
-    ctx.font = '600 30px Inter, system-ui, sans-serif';
+    drawImageWithKenBurns(ctx, photo.img, slideProgress || 0, idx);
+
+    // bottom gradient
+    drawBottomGrad(ctx, Math.round(250 * s));
+
+    // Caption with text animation
+    const textAlpha = slideProgress !== undefined ? Math.min(1, slideProgress * 3) : 1;
+    const textSlide = slideProgress !== undefined ? Math.max(0, (1 - slideProgress * 3)) * 20 * s : 0;
+
+    ctx.save();
+    ctx.globalAlpha = alpha * textAlpha;
+    ctx.font = `600 ${Math.round(30*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, caption, CW/2, CH-85, CW-120, 38);
+    drawCenteredText(ctx, caption, CW/2, CH - 85*s + textSlide, CW-120*s, 38*s);
 
     // Counter
     ctx.textAlign = 'center';
-    ctx.font = '400 15px Inter, system-ui, sans-serif';
+    ctx.font = `400 ${Math.round(15*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH-28);
+    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH - 28*s);
+    ctx.restore();
 
+    drawWatermark(ctx);
     ctx.restore();
 }
 
-function renderContactSlide(ctx, alpha) {
+function renderContactSlide(ctx, alpha, slideProgress) {
     const contacts = $('#contact-info').value.trim() || 'Контактная информация';
     const name  = $('#prop-name').value.trim();
     const price = $('#prop-price').value.trim();
+    const s = sf();
 
     ctx.save();
     ctx.globalAlpha = alpha;
 
     if (photos.length) {
-        drawImageCover(ctx, photos[photos.length-1].img, 0, 0, CW, CH);
+        drawImageWithKenBurns(ctx, photos[photos.length-1].img, slideProgress || 0, photos.length);
         ctx.fillStyle = 'rgba(0,0,0,0.75)';
         ctx.fillRect(0,0,CW,CH);
     } else {
@@ -747,50 +1436,53 @@ function renderContactSlide(ctx, alpha) {
 
     ctx.textAlign = 'center';
 
-    ctx.font = 'bold 44px Inter, system-ui, sans-serif';
+    // CTA title
+    ctx.font = `bold ${Math.round(44*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2-100, CW-140, 52);
+    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2-100*s, CW-140*s, 52*s);
 
+    // Accent line
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-30, CH/2-60, 60, 3);
+    ctx.fillRect(CW/2-30*s, CH/2-60*s, 60*s, 3*s);
 
     if (name) {
-        ctx.font = '500 22px Inter, system-ui, sans-serif';
+        ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#c7d2fe';
-        drawCenteredText(ctx, name, CW/2, CH/2-15, CW-140, 30);
+        drawCenteredText(ctx, name, CW/2, CH/2-15*s, CW-140*s, 30*s);
     }
     if (price) {
-        ctx.font = '700 28px Inter, system-ui, sans-serif';
+        ctx.font = `700 ${Math.round(28*s)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2+30, CW-140, 34);
+        drawCenteredText(ctx, price, CW/2, CH/2+30*s, CW-140*s, 34*s);
     }
 
     // Contact lines
-    ctx.font = '500 20px Inter, system-ui, sans-serif';
+    ctx.font = `500 ${Math.round(20*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#e2e8f0';
-    const lines = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
+    const lines = contacts.split(/[,;|]/).map(l=>l.trim()).filter(Boolean);
     lines.forEach((l,i) => {
-        drawCenteredText(ctx, l, CW/2, CH/2+95+i*34, CW-140, 28);
+        drawCenteredText(ctx, l, CW/2, CH/2+95*s+i*34*s, CW-140*s, 28*s);
     });
 
+    drawWatermark(ctx);
     ctx.restore();
 }
 
 // ============================================================
-// BUILD SLIDES DATA
+// BUILD SLIDES
 // ============================================================
 function buildSlides() {
     const slides = [];
-    slides.push({ type:'title', render: renderTitleSlide });
+    slides.push({ type:'title', render: (c,a,p) => renderTitleSlide(c,a,p) });
     for (let i = 0; i < photos.length; i++) {
-        slides.push({ type:'photo', idx: i, render: (c,a) => renderPhotoSlide(c,i,a) });
+        slides.push({ type:'photo', idx: i, render: (c,a,p) => renderPhotoSlide(c,i,a,p) });
     }
-    slides.push({ type:'contact', render: renderContactSlide });
+    slides.push({ type:'contact', render: (c,a,p) => renderContactSlide(c,a,p) });
     return slides;
 }
 
 // ============================================================
-// VIDEO RECORDING (Canvas → MediaRecorder)
+// VIDEO RECORDING
 // ============================================================
 function recordVideo(canvas, ctx, slides) {
     return new Promise((resolve, reject) => {
@@ -805,7 +1497,7 @@ function recordVideo(canvas, ctx, slides) {
         const mime = mimes.find(m => MediaRecorder.isTypeSupported(m));
         if (!mime) return reject(new Error('Браузер не поддерживает запись видео'));
 
-        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5_000_000 });
+        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
         const chunks = [];
         rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
         rec.onstop = () => resolve(new Blob(chunks, { type: mime }));
@@ -822,15 +1514,32 @@ function recordVideo(canvas, ctx, slides) {
                         `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
 
             ctx.clearRect(0,0,CW,CH);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0,0,CW,CH);
 
             for (let i = 0; i < slides.length; i++) {
                 const sStart = i * (SLIDE_DUR - FADE_DUR);
                 const sEnd   = sStart + SLIDE_DUR;
                 if (t >= sStart - 0.02 && t < sEnd + 0.02) {
                     let alpha = 1;
-                    if (t < sStart + FADE_DUR) alpha = clamp01((t - sStart) / FADE_DUR);
-                    if (t > sEnd   - FADE_DUR) alpha = clamp01((sEnd - t)   / FADE_DUR);
-                    slides[i].render(ctx, alpha);
+                    const slideProgress = clamp01((t - sStart) / SLIDE_DUR);
+
+                    if (t < sStart + FADE_DUR) {
+                        alpha = clamp01((t - sStart) / FADE_DUR);
+                        applyTransitionIn(ctx, alpha, i);
+                    } else if (t > sEnd - FADE_DUR) {
+                        alpha = clamp01((sEnd - t) / FADE_DUR);
+                        applyTransitionOut(ctx, alpha);
+                    } else {
+                        ctx.globalAlpha = 1;
+                    }
+
+                    slides[i].render(ctx, ctx.globalAlpha, slideProgress);
+
+                    if ((t < sStart + FADE_DUR || t > sEnd - FADE_DUR) &&
+                        (currentTransition === 'slide' || currentTransition === 'zoom')) {
+                        resetTransition(ctx);
+                    }
                 }
             }
             requestAnimationFrame(frame);
@@ -840,16 +1549,16 @@ function recordVideo(canvas, ctx, slides) {
 }
 
 // ============================================================
-// MP4 CONVERSION (FFmpeg.wasm — optional)
+// MP4 CONVERSION
 // ============================================================
 async function convertToMP4(webmBlob) {
     if (typeof SharedArrayBuffer === 'undefined') {
-        setProgress(92, 'SharedArrayBuffer недоступен → сохраняем WebM');
+        setProgress(92, 'SharedArrayBuffer недоступен -> сохраняем WebM');
         await delay(1200);
         return null;
     }
     try {
-        setProgress(91, 'Загрузка FFmpeg.wasm…');
+        setProgress(91, 'Загрузка FFmpeg.wasm...');
         const { FFmpeg }    = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
         const { fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js');
         const ffmpeg = new FFmpeg();
@@ -860,7 +1569,7 @@ async function convertToMP4(webmBlob) {
             coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
             wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm'
         });
-        setProgress(93, 'Конвертация WebM → MP4…');
+        setProgress(93, 'Конвертация WebM -> MP4...');
         await ffmpeg.writeFile('in.webm', await fetchFile(webmBlob));
         await ffmpeg.exec(['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
         const data = await ffmpeg.readFile('out.mp4');
@@ -869,7 +1578,7 @@ async function convertToMP4(webmBlob) {
         return new Blob([data.buffer], { type:'video/mp4' });
     } catch (e) {
         console.warn('FFmpeg failed:', e);
-        setProgress(96, 'MP4 не удался → сохраняем WebM');
+        setProgress(96, 'MP4 не удался -> сохраняем WebM');
         await delay(1200);
         return null;
     }
@@ -891,7 +1600,7 @@ async function startGeneration() {
 
     isGenerating = true;
     genBtn.disabled = true;
-    genBtn.innerHTML = '<span class="spinner">⏳</span> Генерация…';
+    genBtn.innerHTML = '<span class="spinner">⏳</span> Генерация...';
     progressSec.classList.remove('hidden');
     previewSec.classList.add('hidden');
     videoBlob = null;
@@ -906,7 +1615,7 @@ async function startGeneration() {
 
         // 2) Build slides
         setActive(2);
-        setProgress(20, 'Подготовка слайдов…');
+        setProgress(20, 'Подготовка слайдов...');
         const slides = buildSlides();
         slidesSnapshot = slides;
         await delay(150);
@@ -914,7 +1623,7 @@ async function startGeneration() {
 
         // 3) Record
         setActive(3);
-        setProgress(25, 'Запись видео…');
+        setProgress(25, 'Запись видео...');
         const recCanvas = document.createElement('canvas');
         recCanvas.width = CW; recCanvas.height = CH;
         const recCtx = recCanvas.getContext('2d');
@@ -923,20 +1632,21 @@ async function startGeneration() {
 
         // 4) MP4
         setActive(4);
-        setProgress(90, 'Конвертация…');
+        setProgress(90, 'Конвертация...');
         const mp4 = await convertToMP4(videoBlob);
         if (mp4) videoBlob = mp4;
         setDone(4);
 
         // Done
-        setProgress(100, 'Видео готово! 🎉');
+        setProgress(100, 'Видео готово!');
         await delay(300);
         previewSec.classList.remove('hidden');
         setupPreview(slides);
         previewSec.scrollIntoView({ behavior:'smooth', block:'center' });
 
         const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
-        downloadInfo.textContent = `Формат: ${ext.toUpperCase()} • ${(videoBlob.size/1048576).toFixed(1)} МБ`;
+        const fmtLabel = FORMATS[currentFormat].label;
+        downloadInfo.textContent = `${fmtLabel} • ${CW}x${CH} • ${ext.toUpperCase()} • ${(videoBlob.size/1048576).toFixed(1)} МБ`;
 
     } catch (e) {
         console.error(e);
@@ -946,7 +1656,10 @@ async function startGeneration() {
 
     isGenerating = false;
     genBtn.disabled = false;
-    genBtn.innerHTML = '🎬 Создать видео';
+    genBtn.innerHTML = `<span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Создать видео
+    </span>`;
 }
 
 // ============================================================
@@ -955,7 +1668,7 @@ async function startGeneration() {
 function setupPreview(slides) {
     const pc  = previewCanvas;
     const pctx = pc.getContext('2d');
-    slides[0].render(pctx, 1);
+    slides[0].render(pctx, 1, 0);
 
     let playing = false;
     pc.style.cursor = 'pointer';
@@ -966,15 +1679,19 @@ function setupPreview(slides) {
         const t0 = performance.now();
         function tick(now) {
             const t = (now - t0)/1000;
-            if (t >= dur) { playing = false; slides[slides.length-1].render(pctx,1); return; }
+            if (t >= dur) { playing = false; slides[slides.length-1].render(pctx,1,1); return; }
             pctx.clearRect(0,0,CW,CH);
+            pctx.fillStyle = '#000';
+            pctx.fillRect(0,0,CW,CH);
+
             for (let i=0;i<slides.length;i++) {
                 const s = i*(SLIDE_DUR-FADE_DUR), e = s+SLIDE_DUR;
                 if (t >= s-0.02 && t < e+0.02) {
                     let a = 1;
+                    const sp = clamp01((t - s) / SLIDE_DUR);
                     if (t < s+FADE_DUR) a = clamp01((t-s)/FADE_DUR);
                     if (t > e-FADE_DUR) a = clamp01((e-t)/FADE_DUR);
-                    slides[i].render(pctx, a);
+                    slides[i].render(pctx, a, sp);
                 }
             }
             requestAnimationFrame(tick);
@@ -990,9 +1707,10 @@ function downloadVideo() {
     if (!videoBlob) return;
     const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
     const safe = ($('#prop-name').value.trim()||'video').replace(/[^\wа-яА-ЯёЁ]/g,'_');
+    const fmtSuffix = currentFormat.replace(':','x');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(videoBlob);
-    a.download = `${safe}_slideshow.${ext}`;
+    a.download = `${safe}_${fmtSuffix}_slideshow.${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1021,14 +1739,14 @@ function resetSteps() {
 function setActive(n) {
     const ic = $(`#step-icon-${n}`);
     ic.className = 'step-indicator active';
-    ic.textContent = '⟳';
+    ic.textContent = '\u27F3';
     $(`#step-label-${n}`).style.color = '#a5b4fc';
 }
 
 function setDone(n) {
     const ic = $(`#step-icon-${n}`);
     ic.className = 'step-indicator done';
-    ic.textContent = '✓';
+    ic.textContent = '\u2713';
     $(`#step-label-${n}`).style.color = '#86efac';
 }
 
