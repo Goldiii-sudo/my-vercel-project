@@ -1181,10 +1181,12 @@ function wrapText(ctx, text, maxW) {
 function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
     ctx.save();
     ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0,0,0,0.85)';
-    ctx.shadowBlur = isGenerating ? 3 : 18;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = isGenerating ? 1 : 2;
+    if (!isGenerating) {
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 2;
+    }
 
     const lines = wrapText(ctx, text, maxW);
     const totalH = lines.length * (lineHeight || 38);
@@ -1389,8 +1391,10 @@ function renderTitleSlide(ctx, alpha, slideProgress) {
     ctx.fillRect(CW/2-accentW/2, CH/2 - 130*s, accentW, 4*s);
 
     // Name with shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = isGenerating ? 3 * s : 12 * s;
+    if (!isGenerating) {
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 12 * s;
+    }
     ctx.font = `800 ${Math.round(54*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
     drawCenteredText(ctx, name, CW/2, CH/2 - 40*s, CW-160*s, 62*s);
@@ -1446,8 +1450,10 @@ function renderPhotoSlide(ctx, idx, alpha, slideProgress) {
     ctx.globalAlpha = alpha * textAlpha;
 
     // Caption shadow for readability
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = isGenerating ? 2 * s : 10 * s;
+    if (!isGenerating) {
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 10 * s;
+    }
     ctx.font = `600 ${Math.round(32*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
     drawCenteredText(ctx, caption, CW/2, CH - 90*s + textSlide, CW-120*s, 40*s);
@@ -1517,8 +1523,10 @@ function renderContactSlide(ctx, alpha, slideProgress) {
     ctx.textAlign = 'center';
 
     // CTA title with shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = isGenerating ? 2 * s : 10 * s;
+    if (!isGenerating) {
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 10 * s;
+    }
     ctx.font = `800 ${Math.round(46*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
     drawCenteredText(ctx, 'Свяжитесь с нами', CW/2, CH/2-100*s, CW-160*s, 54*s);
@@ -1574,71 +1582,66 @@ function buildSlides() {
 // ============================================================
 // VIDEO RECORDING
 // ============================================================
-// Check if time t falls in a transition zone (two slides visible)
-function isTransitionTime(t, slides) {
-    let visibleCount = 0;
-    for (let i = 0; i < slides.length; i++) {
-        const sStart = i * (SLIDE_DUR - FADE_DUR);
-        const sEnd   = sStart + SLIDE_DUR;
-        if (t >= sStart - 0.02 && t < sEnd + 0.02) visibleCount++;
-    }
-    return visibleCount >= 2;
-}
-
-// Pre-render each slide snapshot at its visual midpoint to an offscreen canvas
-function preRenderSlideSnapshots(slides) {
-    const snapshots = [];
-    for (let i = 0; i < slides.length; i++) {
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = CW;
-        offCanvas.height = CH;
-        const offCtx = offCanvas.getContext('2d');
-        offCtx.clearRect(0, 0, CW, CH);
-        offCtx.fillStyle = '#000';
-        offCtx.fillRect(0, 0, CW, CH);
-        slides[i].render(offCtx, 1, 0.5);
-        snapshots.push(offCanvas);
-    }
-    return snapshots;
-}
-
-function renderFrame(ctx, slides, t, snapshots) {
+// Render a single frame — during recording uses simple fade-through-black
+// so only ONE slide draws per frame (no double-render lag)
+function renderFrame(ctx, slides, t, recordingMode) {
     ctx.clearRect(0,0,CW,CH);
     ctx.fillStyle = '#000';
     ctx.fillRect(0,0,CW,CH);
 
-    // During recording with snapshots: use cached images for transitions
-    const useSnapshots = snapshots && isTransitionTime(t, slides);
-
-    for (let i = 0; i < slides.length; i++) {
-        const sStart = i * (SLIDE_DUR - FADE_DUR);
-        const sEnd   = sStart + SLIDE_DUR;
-        if (t >= sStart - 0.02 && t < sEnd + 0.02) {
-            let alpha = 1;
-            const slideProgress = clamp01((t - sStart) / SLIDE_DUR);
-
-            if (t < sStart + FADE_DUR) {
-                alpha = clamp01((t - sStart) / FADE_DUR);
-                if (!useSnapshots) applyTransitionIn(ctx, alpha, i);
-                else ctx.globalAlpha = alpha;
-            } else if (t > sEnd - FADE_DUR) {
-                alpha = clamp01((sEnd - t) / FADE_DUR);
-                if (!useSnapshots) applyTransitionOut(ctx, alpha);
-                else ctx.globalAlpha = alpha;
-            } else {
-                ctx.globalAlpha = 1;
+    if (recordingMode) {
+        // RECORDING: fade-through-black — each frame renders only ONE slide
+        // Find which slide(s) are active at time t
+        let bestSlide = -1, bestAlpha = 0, bestProgress = 0;
+        for (let i = 0; i < slides.length; i++) {
+            const sStart = i * (SLIDE_DUR - FADE_DUR);
+            const sEnd   = sStart + SLIDE_DUR;
+            if (t >= sStart - 0.02 && t < sEnd + 0.02) {
+                let alpha = 1;
+                const slideProgress = clamp01((t - sStart) / SLIDE_DUR);
+                if (t < sStart + FADE_DUR) {
+                    alpha = clamp01((t - sStart) / FADE_DUR);
+                } else if (t > sEnd - FADE_DUR) {
+                    alpha = clamp01((sEnd - t) / FADE_DUR);
+                }
+                // Pick the slide with highest alpha (most visible)
+                if (alpha > bestAlpha) {
+                    bestAlpha = alpha;
+                    bestSlide = i;
+                    bestProgress = slideProgress;
+                }
             }
+        }
+        if (bestSlide >= 0) {
+            ctx.globalAlpha = bestAlpha;
+            slides[bestSlide].render(ctx, bestAlpha, bestProgress);
+            ctx.globalAlpha = 1;
+        }
+    } else {
+        // PREVIEW: full transitions with effects
+        for (let i = 0; i < slides.length; i++) {
+            const sStart = i * (SLIDE_DUR - FADE_DUR);
+            const sEnd   = sStart + SLIDE_DUR;
+            if (t >= sStart - 0.02 && t < sEnd + 0.02) {
+                let alpha = 1;
+                const slideProgress = clamp01((t - sStart) / SLIDE_DUR);
 
-            if (useSnapshots) {
-                ctx.drawImage(snapshots[i], 0, 0);
-                ctx.globalAlpha = 1;
-            } else {
+                if (t < sStart + FADE_DUR) {
+                    alpha = clamp01((t - sStart) / FADE_DUR);
+                    applyTransitionIn(ctx, alpha, i);
+                } else if (t > sEnd - FADE_DUR) {
+                    alpha = clamp01((sEnd - t) / FADE_DUR);
+                    applyTransitionOut(ctx, alpha);
+                } else {
+                    ctx.globalAlpha = 1;
+                }
+
                 slides[i].render(ctx, ctx.globalAlpha, slideProgress);
-            }
 
-            if (!useSnapshots && (t < sStart + FADE_DUR || t > sEnd - FADE_DUR) &&
-                (currentTransition === 'slide' || currentTransition === 'zoom')) {
-                resetTransition(ctx);
+                if ((t < sStart + FADE_DUR || t > sEnd - FADE_DUR) &&
+                    (currentTransition === 'slide' || currentTransition === 'zoom')) {
+                    resetTransition(ctx);
+                }
             }
         }
     }
@@ -1646,29 +1649,82 @@ function renderFrame(ctx, slides, t, snapshots) {
 
 const TARGET_FPS = 30;
 
-function recordVideo(canvas, ctx, slides) {
+// WebCodecs-based recording: perfect CFR, no MediaRecorder VFR issues
+async function recordVideoWebCodecs(canvas, ctx, slides) {
+    const { Muxer, ArrayBufferTarget } = await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.mjs');
+
+    const totalDur = slides.length * SLIDE_DUR - (slides.length - 1) * FADE_DUR;
+    const totalFrames = Math.ceil((totalDur + 0.3) * TARGET_FPS);
+    const frameDurMicros = Math.round(1_000_000 / TARGET_FPS);
+
+    const target = new ArrayBufferTarget();
+    const muxer = new Muxer({
+        target,
+        video: { codec: 'avc', width: CW, height: CH },
+        fastStart: 'in-memory'
+    });
+
+    const encoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: (e) => { throw e; }
+    });
+
+    encoder.configure({
+        codec: 'avc1.42001E',
+        width: CW,
+        height: CH,
+        bitrate: 8_000_000,
+        framerate: TARGET_FPS,
+        latencyMode: 'quality',
+        avc: { format: 'avc' }
+    });
+
+    for (let i = 0; i < totalFrames; i++) {
+        const t = i / TARGET_FPS;
+        if (i % 5 === 0) {
+            setProgress(25 + Math.round(Math.min(t/totalDur,1)*63),
+                        `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
+        }
+
+        renderFrame(ctx, slides, t, true);
+        const frame = new VideoFrame(canvas, { timestamp: i * frameDurMicros, duration: frameDurMicros });
+        encoder.encode(frame, { keyFrame: i % 60 === 0 });
+        frame.close();
+
+        // Yield to browser every 10 frames for UI updates
+        if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+
+    await encoder.flush();
+    encoder.close();
+    muxer.finalize();
+
+    const blob = new Blob([target.buffer], { type: 'video/mp4' });
+    blob._webcodecs = true;
+    return blob;
+}
+
+// MediaRecorder fallback
+function recordVideoMediaRecorder(canvas, ctx, slides) {
     return new Promise((resolve, reject) => {
         const totalDur = slides.length * SLIDE_DUR - (slides.length - 1) * FADE_DUR;
         const stream = canvas.captureStream(TARGET_FPS);
 
         const mimes = [
-            'video/mp4;codecs=avc1.42E01E',
-            'video/mp4',
             'video/webm;codecs=vp9',
             'video/webm;codecs=vp8',
-            'video/webm'
+            'video/webm',
+            'video/mp4;codecs=avc1.42E01E',
+            'video/mp4'
         ];
         const mime = mimes.find(m => MediaRecorder.isTypeSupported(m));
         if (!mime) return reject(new Error('Браузер не поддерживает запись видео'));
 
-        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 });
+        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
         const chunks = [];
         rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
         rec.onstop = () => resolve(new Blob(chunks, { type: mime }));
         rec.onerror = () => reject(new Error('Ошибка MediaRecorder'));
-
-        // Pre-render slide snapshots for fast transition compositing
-        const snapshots = preRenderSlideSnapshots(slides);
 
         rec.start(100);
         let frameNum = 0;
@@ -1688,16 +1744,30 @@ function recordVideo(canvas, ctx, slides) {
                             `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
             }
 
-            renderFrame(ctx, slides, t, snapshots);
+            renderFrame(ctx, slides, t, true);
             frameNum++;
 
             const targetTime = recordStart + frameNum * frameInterval;
             const now = performance.now();
-            const delay = Math.max(1, targetTime - now);
-            setTimeout(nextFrame, delay);
+            const d = Math.max(1, targetTime - now);
+            setTimeout(nextFrame, d);
         }
         nextFrame();
     });
+}
+
+// Main record function: try WebCodecs first, fallback to MediaRecorder
+async function recordVideo(canvas, ctx, slides) {
+    if (typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined') {
+        try {
+            setProgress(25, 'Запись через WebCodecs (30fps CFR)...');
+            return await recordVideoWebCodecs(canvas, ctx, slides);
+        } catch (e) {
+            console.warn('WebCodecs failed, falling back to MediaRecorder:', e);
+        }
+    }
+    setProgress(25, 'Запись через MediaRecorder...');
+    return await recordVideoMediaRecorder(canvas, ctx, slides);
 }
 
 // ============================================================
@@ -1721,11 +1791,13 @@ async function convertToMP4(webmBlob) {
             coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
             wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm'
         });
-        setProgress(93, 'Конвертация WebM -> MP4...');
-        await ffmpeg.writeFile('in.webm', await fetchFile(webmBlob));
-        await ffmpeg.exec(['-i','in.webm','-r','30','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
+        setProgress(93, 'Конвертация -> MP4 (30fps CFR)...');
+        const inExt = webmBlob.type.includes('mp4') ? 'mp4' : 'webm';
+        const inFile = 'in.' + inExt;
+        await ffmpeg.writeFile(inFile, await fetchFile(webmBlob));
+        await ffmpeg.exec(['-i',inFile,'-r','30','-vsync','cfr','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
         const data = await ffmpeg.readFile('out.mp4');
-        await ffmpeg.deleteFile('in.webm');
+        await ffmpeg.deleteFile(inFile);
         await ffmpeg.deleteFile('out.mp4');
         return new Blob([data.buffer], { type:'video/mp4' });
     } catch (e) {
@@ -1782,13 +1854,13 @@ async function startGeneration() {
         videoBlob = await recordVideo(recCanvas, recCtx, slides);
         setDone(3);
 
-        // 4) MP4
+        // 4) MP4 — always convert for constant framerate if not WebCodecs output
         setActive(4);
-        if (videoBlob.type.includes('mp4')) {
-            setProgress(98, 'Видео уже в MP4 — пропуск конвертации');
+        if (videoBlob.type === 'video/mp4' && videoBlob._webcodecs) {
+            setProgress(98, 'WebCodecs MP4 — 30fps CFR');
             await delay(300);
-        } else {
-            setProgress(90, 'Конвертация...');
+        } else if (videoBlob.type.includes('mp4') || videoBlob.type.includes('webm')) {
+            setProgress(90, 'Финализация (30fps CFR)...');
             const mp4 = await convertToMP4(videoBlob);
             if (mp4) videoBlob = mp4;
         }
