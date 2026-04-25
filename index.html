@@ -1216,7 +1216,7 @@ function drawWatermark(ctx) {
     if (!watermarkImg) return;
     const pos = $('#watermark-position').value;
     const scale = sf();
-    const maxS = 80 * scale;
+    const maxS = 100 * scale;
     const ratio = watermarkImg.naturalWidth / watermarkImg.naturalHeight;
     let ww, wh;
     if (ratio > 1) { ww = maxS; wh = maxS / ratio; }
@@ -1323,6 +1323,20 @@ function resetTransition(ctx) {
 // ============================================================
 // SLIDE RENDERERS
 // ============================================================
+function drawRoundedRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+}
+
 function renderTitleSlide(ctx, alpha, slideProgress) {
     const name  = $('#prop-name').value.trim() || 'Объект недвижимости';
     const price = $('#prop-price').value.trim();
@@ -1335,11 +1349,10 @@ function renderTitleSlide(ctx, alpha, slideProgress) {
 
     if (photos.length) {
         drawImageWithKenBurns(ctx, photos[0].img, slideProgress || 0, 0);
-        // dark overlay with gradient
         const g = ctx.createLinearGradient(0, 0, 0, CH);
-        g.addColorStop(0, 'rgba(0,0,0,0.4)');
-        g.addColorStop(0.5, 'rgba(0,0,0,0.6)');
-        g.addColorStop(1, 'rgba(0,0,0,0.7)');
+        g.addColorStop(0, 'rgba(0,0,0,0.3)');
+        g.addColorStop(0.4, 'rgba(0,0,0,0.55)');
+        g.addColorStop(1, 'rgba(0,0,0,0.85)');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, CW, CH);
     } else {
@@ -1349,31 +1362,56 @@ function renderTitleSlide(ctx, alpha, slideProgress) {
         ctx.fillRect(0,0,CW,CH);
     }
 
+    // Glass card behind text
+    const cardW = CW * 0.8;
+    const cardH = 280 * s;
+    const cardX = (CW - cardW) / 2;
+    const cardY = CH/2 - cardH/2 - 20*s;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.25;
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 20*s);
+    ctx.fillStyle = 'rgba(99,102,241,0.15)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(165,180,252,0.2)';
+    ctx.lineWidth = 1.5 * s;
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = alpha;
+
     ctx.textAlign = 'center';
 
-    // Decorative accent line
-    const accentW = 80 * s;
-    ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-accentW/2, CH/2 - 150*s, accentW, 4*s);
+    // Top decorative accent line
+    const accentW = 60 * s;
+    const gAcc = ctx.createLinearGradient(CW/2-accentW, CH/2 - 130*s, CW/2+accentW, CH/2 - 130*s);
+    gAcc.addColorStop(0, '#818cf8');
+    gAcc.addColorStop(1, '#c084fc');
+    ctx.fillStyle = gAcc;
+    ctx.fillRect(CW/2-accentW/2, CH/2 - 130*s, accentW, 4*s);
 
-    // Name
-    ctx.font = `bold ${Math.round(52*s)}px Inter, system-ui, sans-serif`;
+    // Name with shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 12 * s;
+    ctx.font = `800 ${Math.round(54*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, name, CW/2, CH/2 - 55*s, CW-140*s, 60*s);
+    drawCenteredText(ctx, name, CW/2, CH/2 - 40*s, CW-160*s, 62*s);
+    ctx.shadowBlur = 0;
 
-    // Price
+    // Price with gradient
     if (price) {
-        ctx.font = `700 ${Math.round(42*s)}px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2 + 25*s, CW-140*s, 48*s);
+        ctx.font = `700 ${Math.round(44*s)}px Inter, system-ui, sans-serif`;
+        const pGrad = ctx.createLinearGradient(CW/2-100*s, 0, CW/2+100*s, 0);
+        pGrad.addColorStop(0, '#a5b4fc');
+        pGrad.addColorStop(1, '#c4b5fd');
+        ctx.fillStyle = pGrad;
+        drawCenteredText(ctx, price, CW/2, CH/2 + 40*s, CW-160*s, 50*s);
     }
 
-    // Subline
-    const sub = [area, dist].filter(Boolean).join(' \u2022 ');
+    // Subline with icon-like bullet
+    const sub = [area, dist].filter(Boolean).join('  ·  ');
     if (sub) {
-        ctx.font = `400 ${Math.round(20*s)}px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = '#94a3b8';
-        drawCenteredText(ctx, sub, CW/2, CH/2 + 90*s, CW-140*s, 28*s);
+        ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#cbd5e1';
+        drawCenteredText(ctx, sub, CW/2, CH/2 + 100*s, CW-160*s, 30*s);
     }
 
     drawWatermark(ctx);
@@ -1390,8 +1428,15 @@ function renderPhotoSlide(ctx, idx, alpha, slideProgress) {
 
     drawImageWithKenBurns(ctx, photo.img, slideProgress || 0, idx);
 
-    // bottom gradient
-    drawBottomGrad(ctx, Math.round(250 * s));
+    // Enhanced bottom gradient — taller and smoother
+    const gradH = Math.round(300 * s);
+    const g = ctx.createLinearGradient(0, CH-gradH, 0, CH);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.3, 'rgba(0,0,0,0.35)');
+    g.addColorStop(0.7, 'rgba(0,0,0,0.7)');
+    g.addColorStop(1, 'rgba(0,0,0,0.92)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, CH-gradH, CW, gradH);
 
     // Caption with text animation
     const textAlpha = slideProgress !== undefined ? Math.min(1, slideProgress * 3) : 1;
@@ -1399,15 +1444,31 @@ function renderPhotoSlide(ctx, idx, alpha, slideProgress) {
 
     ctx.save();
     ctx.globalAlpha = alpha * textAlpha;
-    ctx.font = `600 ${Math.round(30*s)}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, caption, CW/2, CH - 85*s + textSlide, CW-120*s, 38*s);
 
-    // Counter
+    // Caption shadow for readability
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 10 * s;
+    ctx.font = `600 ${Math.round(32*s)}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = '#fff';
+    drawCenteredText(ctx, caption, CW/2, CH - 90*s + textSlide, CW-120*s, 40*s);
+    ctx.shadowBlur = 0;
+
+    // Counter pill
     ctx.textAlign = 'center';
-    ctx.font = `400 ${Math.round(15*s)}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH - 28*s);
+    const countText = `${idx+1} / ${photos.length}`;
+    ctx.font = `500 ${Math.round(14*s)}px Inter, system-ui, sans-serif`;
+    const cMetrics = ctx.measureText(countText);
+    const pillW = cMetrics.width + 20*s;
+    const pillH = 24*s;
+    const pillX = CW/2 - pillW/2;
+    const pillY = CH - 42*s;
+    ctx.globalAlpha = alpha * textAlpha * 0.5;
+    drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 12*s);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fill();
+    ctx.globalAlpha = alpha * textAlpha;
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText(countText, CW/2, CH - 26*s);
     ctx.restore();
 
     drawWatermark(ctx);
@@ -1425,7 +1486,10 @@ function renderContactSlide(ctx, alpha, slideProgress) {
 
     if (photos.length) {
         drawImageWithKenBurns(ctx, photos[photos.length-1].img, slideProgress || 0, photos.length);
-        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        const ov = ctx.createLinearGradient(0, 0, 0, CH);
+        ov.addColorStop(0, 'rgba(15,23,42,0.75)');
+        ov.addColorStop(1, 'rgba(30,27,75,0.85)');
+        ctx.fillStyle = ov;
         ctx.fillRect(0,0,CW,CH);
     } else {
         const bg = ctx.createLinearGradient(0,0,CW,CH);
@@ -1434,34 +1498,60 @@ function renderContactSlide(ctx, alpha, slideProgress) {
         ctx.fillRect(0,0,CW,CH);
     }
 
+    // Glass card
+    const cardW = CW * 0.75;
+    const cardH = 340 * s;
+    const cardX = (CW - cardW) / 2;
+    const cardY = CH/2 - cardH/2;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.3;
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 24*s);
+    ctx.fillStyle = 'rgba(99,102,241,0.12)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(165,180,252,0.2)';
+    ctx.lineWidth = 1.5 * s;
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = alpha;
+
     ctx.textAlign = 'center';
 
-    // CTA title
-    ctx.font = `bold ${Math.round(44*s)}px Inter, system-ui, sans-serif`;
+    // CTA title with shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 10 * s;
+    ctx.font = `800 ${Math.round(46*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2-100*s, CW-140*s, 52*s);
+    drawCenteredText(ctx, 'Свяжитесь с нами', CW/2, CH/2-100*s, CW-160*s, 54*s);
+    ctx.shadowBlur = 0;
 
-    // Accent line
-    ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-30*s, CH/2-60*s, 60*s, 3*s);
+    // Gradient accent line
+    const accW = 70 * s;
+    const gAcc = ctx.createLinearGradient(CW/2-accW, 0, CW/2+accW, 0);
+    gAcc.addColorStop(0, '#818cf8');
+    gAcc.addColorStop(1, '#c084fc');
+    ctx.fillStyle = gAcc;
+    ctx.fillRect(CW/2-accW/2, CH/2-55*s, accW, 3.5*s);
 
     if (name) {
-        ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = '#c7d2fe';
-        drawCenteredText(ctx, name, CW/2, CH/2-15*s, CW-140*s, 30*s);
+        ctx.font = `500 ${Math.round(24*s)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#e0e7ff';
+        drawCenteredText(ctx, name, CW/2, CH/2-10*s, CW-160*s, 32*s);
     }
     if (price) {
-        ctx.font = `700 ${Math.round(28*s)}px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2+30*s, CW-140*s, 34*s);
+        ctx.font = `700 ${Math.round(30*s)}px Inter, system-ui, sans-serif`;
+        const pGrad = ctx.createLinearGradient(CW/2-80*s, 0, CW/2+80*s, 0);
+        pGrad.addColorStop(0, '#a5b4fc');
+        pGrad.addColorStop(1, '#c4b5fd');
+        ctx.fillStyle = pGrad;
+        drawCenteredText(ctx, price, CW/2, CH/2+35*s, CW-160*s, 36*s);
     }
 
     // Contact lines
-    ctx.font = `500 ${Math.round(20*s)}px Inter, system-ui, sans-serif`;
+    ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#e2e8f0';
     const lines = contacts.split(/[,;|]/).map(l=>l.trim()).filter(Boolean);
     lines.forEach((l,i) => {
-        drawCenteredText(ctx, l, CW/2, CH/2+95*s+i*34*s, CW-140*s, 28*s);
+        drawCenteredText(ctx, l, CW/2, CH/2+100*s+i*36*s, CW-160*s, 30*s);
     });
 
     drawWatermark(ctx);
@@ -1484,10 +1574,45 @@ function buildSlides() {
 // ============================================================
 // VIDEO RECORDING
 // ============================================================
+function renderFrame(ctx, slides, t) {
+    ctx.clearRect(0,0,CW,CH);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,CW,CH);
+
+    for (let i = 0; i < slides.length; i++) {
+        const sStart = i * (SLIDE_DUR - FADE_DUR);
+        const sEnd   = sStart + SLIDE_DUR;
+        if (t >= sStart - 0.02 && t < sEnd + 0.02) {
+            let alpha = 1;
+            const slideProgress = clamp01((t - sStart) / SLIDE_DUR);
+
+            if (t < sStart + FADE_DUR) {
+                alpha = clamp01((t - sStart) / FADE_DUR);
+                applyTransitionIn(ctx, alpha, i);
+            } else if (t > sEnd - FADE_DUR) {
+                alpha = clamp01((sEnd - t) / FADE_DUR);
+                applyTransitionOut(ctx, alpha);
+            } else {
+                ctx.globalAlpha = 1;
+            }
+
+            slides[i].render(ctx, ctx.globalAlpha, slideProgress);
+
+            if ((t < sStart + FADE_DUR || t > sEnd - FADE_DUR) &&
+                (currentTransition === 'slide' || currentTransition === 'zoom')) {
+                resetTransition(ctx);
+            }
+        }
+    }
+}
+
+const TARGET_FPS = 30;
+const FRAME_INTERVAL = 1000 / TARGET_FPS;
+
 function recordVideo(canvas, ctx, slides) {
     return new Promise((resolve, reject) => {
         const totalDur = slides.length * SLIDE_DUR - (slides.length - 1) * FADE_DUR;
-        const stream = canvas.captureStream(30);
+        const stream = canvas.captureStream(TARGET_FPS);
 
         const mimes = [
             'video/webm;codecs=vp9',
@@ -1497,54 +1622,30 @@ function recordVideo(canvas, ctx, slides) {
         const mime = mimes.find(m => MediaRecorder.isTypeSupported(m));
         if (!mime) return reject(new Error('Браузер не поддерживает запись видео'));
 
-        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 });
         const chunks = [];
         rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
         rec.onstop = () => resolve(new Blob(chunks, { type: mime }));
         rec.onerror = () => reject(new Error('Ошибка MediaRecorder'));
 
         rec.start(100);
-        const t0 = performance.now();
+        let frameNum = 0;
+        const totalFrames = Math.ceil((totalDur + 0.3) * TARGET_FPS);
 
-        function frame(now) {
-            const t = (now - t0) / 1000;
-            if (t >= totalDur + 0.3) { rec.stop(); return; }
+        const interval = setInterval(() => {
+            const t = frameNum / TARGET_FPS;
+            if (frameNum >= totalFrames) {
+                clearInterval(interval);
+                rec.stop();
+                return;
+            }
 
             setProgress(25 + Math.round(Math.min(t/totalDur,1)*63),
                         `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
 
-            ctx.clearRect(0,0,CW,CH);
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0,0,CW,CH);
-
-            for (let i = 0; i < slides.length; i++) {
-                const sStart = i * (SLIDE_DUR - FADE_DUR);
-                const sEnd   = sStart + SLIDE_DUR;
-                if (t >= sStart - 0.02 && t < sEnd + 0.02) {
-                    let alpha = 1;
-                    const slideProgress = clamp01((t - sStart) / SLIDE_DUR);
-
-                    if (t < sStart + FADE_DUR) {
-                        alpha = clamp01((t - sStart) / FADE_DUR);
-                        applyTransitionIn(ctx, alpha, i);
-                    } else if (t > sEnd - FADE_DUR) {
-                        alpha = clamp01((sEnd - t) / FADE_DUR);
-                        applyTransitionOut(ctx, alpha);
-                    } else {
-                        ctx.globalAlpha = 1;
-                    }
-
-                    slides[i].render(ctx, ctx.globalAlpha, slideProgress);
-
-                    if ((t < sStart + FADE_DUR || t > sEnd - FADE_DUR) &&
-                        (currentTransition === 'slide' || currentTransition === 'zoom')) {
-                        resetTransition(ctx);
-                    }
-                }
-            }
-            requestAnimationFrame(frame);
-        }
-        requestAnimationFrame(frame);
+            renderFrame(ctx, slides, t);
+            frameNum++;
+        }, FRAME_INTERVAL);
     });
 }
 
@@ -1680,20 +1781,7 @@ function setupPreview(slides) {
         function tick(now) {
             const t = (now - t0)/1000;
             if (t >= dur) { playing = false; slides[slides.length-1].render(pctx,1,1); return; }
-            pctx.clearRect(0,0,CW,CH);
-            pctx.fillStyle = '#000';
-            pctx.fillRect(0,0,CW,CH);
-
-            for (let i=0;i<slides.length;i++) {
-                const s = i*(SLIDE_DUR-FADE_DUR), e = s+SLIDE_DUR;
-                if (t >= s-0.02 && t < e+0.02) {
-                    let a = 1;
-                    const sp = clamp01((t - s) / SLIDE_DUR);
-                    if (t < s+FADE_DUR) a = clamp01((t-s)/FADE_DUR);
-                    if (t > e-FADE_DUR) a = clamp01((e-t)/FADE_DUR);
-                    slides[i].render(pctx, a, sp);
-                }
-            }
+            renderFrame(pctx, slides, t);
             requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
