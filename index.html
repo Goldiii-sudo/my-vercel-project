@@ -1664,22 +1664,33 @@ async function recordVideoWebCodecs(canvas, ctx, slides) {
         fastStart: 'in-memory'
     });
 
+    let encoderError = null;
     const encoder = new VideoEncoder({
         output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-        error: (e) => { throw e; }
+        error: (e) => { encoderError = e; }
     });
 
-    encoder.configure({
-        codec: 'avc1.42001E',
+    // High Profile Level 4.0 supports up to 1920x1080/1080x1920
+    const codecConfig = {
+        codec: 'avc1.640028',
         width: CW,
         height: CH,
         bitrate: 8_000_000,
         framerate: TARGET_FPS,
-        latencyMode: 'quality',
-        avc: { format: 'avc' }
-    });
+    };
+
+    const support = await VideoEncoder.isConfigSupported(codecConfig);
+    if (!support.supported) throw new Error('H.264 codec not supported for this resolution');
+    encoder.configure(support.config);
 
     for (let i = 0; i < totalFrames; i++) {
+        if (encoderError) throw encoderError;
+
+        // Backpressure: wait if encoder queue is too large
+        while (encoder.encodeQueueSize > 10) {
+            await new Promise(r => setTimeout(r, 1));
+        }
+
         const t = i / TARGET_FPS;
         if (i % 5 === 0) {
             setProgress(25 + Math.round(Math.min(t/totalDur,1)*63),
@@ -1688,7 +1699,7 @@ async function recordVideoWebCodecs(canvas, ctx, slides) {
 
         renderFrame(ctx, slides, t, true);
         const frame = new VideoFrame(canvas, { timestamp: i * frameDurMicros, duration: frameDurMicros });
-        encoder.encode(frame, { keyFrame: i % 60 === 0 });
+        encoder.encode(frame, { keyFrame: i % 90 === 0 });
         frame.close();
 
         // Yield to browser every 10 frames for UI updates
