@@ -1607,14 +1607,16 @@ function renderFrame(ctx, slides, t) {
 }
 
 const TARGET_FPS = 30;
-const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
 function recordVideo(canvas, ctx, slides) {
     return new Promise((resolve, reject) => {
         const totalDur = slides.length * SLIDE_DUR - (slides.length - 1) * FADE_DUR;
-        const stream = canvas.captureStream(TARGET_FPS);
+        const stream = canvas.captureStream(0);
+        const videoTrack = stream.getVideoTracks()[0];
 
         const mimes = [
+            'video/mp4;codecs=avc1.42E01E',
+            'video/mp4',
             'video/webm;codecs=vp9',
             'video/webm;codecs=vp8',
             'video/webm'
@@ -1631,21 +1633,27 @@ function recordVideo(canvas, ctx, slides) {
         rec.start(100);
         let frameNum = 0;
         const totalFrames = Math.ceil((totalDur + 0.3) * TARGET_FPS);
+        const frameInterval = 1000 / TARGET_FPS;
 
-        const interval = setInterval(() => {
-            const t = frameNum / TARGET_FPS;
+        function nextFrame() {
             if (frameNum >= totalFrames) {
-                clearInterval(interval);
                 rec.stop();
                 return;
             }
 
+            const t = frameNum / TARGET_FPS;
             setProgress(25 + Math.round(Math.min(t/totalDur,1)*63),
                         `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
 
             renderFrame(ctx, slides, t);
+            if (videoTrack.requestFrame) {
+                videoTrack.requestFrame();
+            }
             frameNum++;
-        }, FRAME_INTERVAL);
+
+            setTimeout(nextFrame, frameInterval);
+        }
+        nextFrame();
     });
 }
 
@@ -1672,7 +1680,7 @@ async function convertToMP4(webmBlob) {
         });
         setProgress(93, 'Конвертация WebM -> MP4...');
         await ffmpeg.writeFile('in.webm', await fetchFile(webmBlob));
-        await ffmpeg.exec(['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
+        await ffmpeg.exec(['-i','in.webm','-r','30','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
         const data = await ffmpeg.readFile('out.mp4');
         await ffmpeg.deleteFile('in.webm');
         await ffmpeg.deleteFile('out.mp4');
@@ -1733,9 +1741,14 @@ async function startGeneration() {
 
         // 4) MP4
         setActive(4);
-        setProgress(90, 'Конвертация...');
-        const mp4 = await convertToMP4(videoBlob);
-        if (mp4) videoBlob = mp4;
+        if (videoBlob.type.includes('mp4')) {
+            setProgress(98, 'Видео уже в MP4 — пропуск конвертации');
+            await delay(300);
+        } else {
+            setProgress(90, 'Конвертация...');
+            const mp4 = await convertToMP4(videoBlob);
+            if (mp4) videoBlob = mp4;
+        }
         setDone(4);
 
         // Done
