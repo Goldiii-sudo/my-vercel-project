@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReelEstate — Генератор видео-слайдшоу недвижимости</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+        body { background: #030712; color: #f9fafb; }
+
+        .glass-card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(75, 85, 99, 0.25);
+        }
+
+        .drop-zone {
+            border: 2px dashed #374151;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(99, 102, 241, 0.35);
+        }
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up { animation: fadeInUp 0.5s ease forwards; }
+
+        .photo-thumb {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            aspect-ratio: 4/3;
+        }
+        .photo-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-thumb .remove-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;
+            height: 24px;
+            background: rgba(239,68,68,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 12px;
+        }
+        .photo-thumb:hover .remove-btn { opacity: 1; }
+
+        .step-indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            border: 2px solid #4b5563;
+            color: #6b7280;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .step-indicator.active {
+            border-color: #6366f1;
+            color: #6366f1;
+            box-shadow: 0 0 12px rgba(99,102,241,0.3);
+        }
+        .step-indicator.done {
+            border-color: #22c55e;
+            background: #22c55e;
+            color: white;
+        }
+
+        input, textarea, select { outline: none; }
+        input:focus, textarea:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+
+        .canvas-container {
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .canvas-container canvas { width: 100%; display: block; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; display: inline-block; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="fixed inset-0 pointer-events-none" style="background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 60%);"></div>
+
+    <div class="relative z-10">
+        <!-- Header -->
+        <header class="pt-10 pb-6 px-4">
+            <div class="max-w-3xl mx-auto text-center">
+                <div class="inline-flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl">🎬</div>
+                    <h1 class="text-3xl md:text-4xl font-extrabold">
+                        <span class="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">ReelEstate</span>
+                    </h1>
+                </div>
+                <p class="text-gray-400 text-base md:text-lg">Генератор видео-слайдшоу для объектов недвижимости</p>
+                <p class="text-gray-600 text-sm mt-1">Загрузите фото → Заполните данные → Получите готовое видео</p>
+            </div>
+        </header>
+
+        <main class="max-w-3xl mx-auto px-4 pb-16 space-y-6">
+
+            <!-- API Key -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.05s">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-base font-semibold flex items-center gap-2">
+                        <span class="text-lg">🔑</span> API ключ Gemini
+                    </h2>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener"
+                       class="text-indigo-400 hover:text-indigo-300 text-xs transition">Получить ключ →</a>
+                </div>
+                <div class="flex gap-2">
+                    <input type="password" id="api-key"
+                           class="flex-1 bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                           placeholder="AIzaSy...">
+                    <button onclick="testApiKey()" id="test-api-btn"
+                            class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700/50 rounded-xl text-sm font-medium transition whitespace-nowrap">
+                        Проверить
+                    </button>
+                </div>
+                <div id="api-status" class="mt-2 text-xs hidden"></div>
+            </section>
+
+            <!-- Photos -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.1s">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-base font-semibold flex items-center gap-2">
+                        <span class="text-lg">📸</span> Фотографии объекта
+                    </h2>
+                    <span id="photo-count-badge" class="badge bg-gray-800 text-gray-400 hidden">
+                        <span id="photo-count-text">0</span> / 20
+                    </span>
+                </div>
+                <div id="drop-zone" class="drop-zone rounded-xl p-8 md:p-10 text-center">
+                    <div class="text-4xl mb-3 opacity-60">📁</div>
+                    <p class="text-gray-400 text-sm mb-1">Перетащите фото сюда или нажмите для выбора</p>
+                    <p class="text-gray-600 text-xs">PNG, JPG, WEBP — от 5 до 20 фото</p>
+                    <input type="file" id="file-input" multiple accept="image/*" class="hidden">
+                </div>
+                <div id="photo-preview" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 hidden"></div>
+                <div id="photo-error" class="mt-2 text-xs text-red-400 hidden"></div>
+            </section>
+
+            <!-- Property Data -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.15s">
+                <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
+                    <span class="text-lg">📋</span> Данные объекта
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Название объекта *</label>
+                        <input type="text" id="prop-name"
+                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                               placeholder="3-комн. квартира на Невском">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Цена *</label>
+                        <input type="text" id="prop-price"
+                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                               placeholder="15 500 000 ₽">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Площадь</label>
+                        <input type="text" id="prop-area"
+                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                               placeholder="89 м²">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Район / Адрес</label>
+                        <input type="text" id="prop-district"
+                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                               placeholder="Центральный, Невский пр-т 10">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="block text-xs text-gray-500 mb-1.5 font-medium">Ключевые преимущества</label>
+                    <textarea id="prop-features" rows="2"
+                              class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition resize-none"
+                              placeholder="Свежий ремонт, панорамные окна, паркинг, рядом метро"></textarea>
+                </div>
+            </section>
+
+            <!-- Contacts -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.2s">
+                <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                    <span class="text-lg">📞</span> Контакты
+                    <span class="text-xs font-normal text-gray-600">(для последнего слайда)</span>
+                </h2>
+                <input type="text" id="contact-info"
+                       class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                       placeholder="+7 (999) 123-45-67 • Агентство «Недвижимость PRO»">
+            </section>
+
+            <!-- Generate -->
+            <div class="text-center pt-2 fade-in-up" style="animation-delay:0.25s">
+                <button id="generate-btn" onclick="startGeneration()"
+                        class="btn-primary px-14 py-4 rounded-2xl text-base font-bold text-white tracking-wide">
+                    🎬 Создать видео
+                </button>
+            </div>
+
+            <!-- Progress -->
+            <section id="progress-section" class="glass-card rounded-2xl p-5 hidden">
+                <h2 class="text-base font-semibold mb-4 flex items-center gap-2">
+                    <span class="text-lg">⏳</span> Генерация видео
+                    <span id="progress-percent" class="ml-auto text-indigo-400 font-mono text-sm">0%</span>
+                </h2>
+                <div class="bg-gray-800/80 rounded-full h-2.5 overflow-hidden mb-4">
+                    <div id="progress-bar" class="h-full rounded-full transition-all duration-500 ease-out"
+                         style="width:0%;background:linear-gradient(90deg,#6366f1,#a855f7);"></div>
+                </div>
+                <p id="progress-text" class="text-gray-400 text-sm text-center mb-4">Подготовка...</p>
+                <div class="space-y-2.5">
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="step-indicator" id="step-icon-1">1</div>
+                        <span id="step-label-1" class="text-gray-500">Генерация подписей + проверка разнообразия</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="step-indicator" id="step-icon-2">2</div>
+                        <span id="step-label-2" class="text-gray-500">Рендеринг слайдов на Canvas</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="step-indicator" id="step-icon-3">3</div>
+                        <span id="step-label-3" class="text-gray-500">Запись видео в браузере</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="step-indicator" id="step-icon-4">4</div>
+                        <span id="step-label-4" class="text-gray-500">Конвертация в MP4</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Preview & Download -->
+            <section id="preview-section" class="glass-card rounded-2xl p-5 hidden">
+                <h2 class="text-base font-semibold mb-4 flex items-center gap-2">
+                    <span class="text-lg">🎬</span> Готовое видео
+                </h2>
+                <div class="canvas-container">
+                    <canvas id="preview-canvas" width="1280" height="720"></canvas>
+                </div>
+                <p class="text-center text-xs text-gray-500 mt-2">▶ Нажмите на видео для предпросмотра</p>
+                <div class="mt-5 flex flex-col items-center gap-3">
+                    <button id="download-btn" onclick="downloadVideo()"
+                            class="btn-primary px-10 py-3.5 rounded-2xl text-base font-bold text-white">
+                        ⬇️ Скачать видео
+                    </button>
+                    <p id="download-info" class="text-xs text-gray-500"></p>
+                </div>
+            </section>
+
+            <footer class="text-center text-xs text-gray-700 pt-4">
+                ReelEstate — Видео генерируется полностью в браузере
+            </footer>
+        </main>
+    </div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const CW = 1280;
+const CH = 720;
+const SLIDE_DUR = 3.0;
+const FADE_DUR = 0.6;
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// ============================================================
+// STATE
+// ============================================================
+let photos = [];          // { file, img, objectURL }
+let captions = [];
+let videoBlob = null;
+let isGenerating = false;
+let slidesSnapshot = [];  // store last generated slides for preview replay
+
+// ============================================================
+// DOM
+// ============================================================
+const $ = s => document.querySelector(s);
+
+const dropZone     = $('#drop-zone');
+const fileInput    = $('#file-input');
+const previewGrid  = $('#photo-preview');
+const photoBadge   = $('#photo-count-badge');
+const photoCountTx = $('#photo-count-text');
+const photoError   = $('#photo-error');
+const genBtn       = $('#generate-btn');
+const progressSec  = $('#progress-section');
+const progressBar  = $('#progress-bar');
+const progressTx   = $('#progress-text');
+const progressPct  = $('#progress-percent');
+const previewSec   = $('#preview-section');
+const previewCanvas= $('#preview-canvas');
+const downloadInfo = $('#download-info');
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('gemini_api_key');
+    if (saved) $('#api-key').value = saved;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+});
+
+// ============================================================
+// PHOTO HANDLING
+// ============================================================
+async function handleFiles(fileList) {
+    const ok = ['image/jpeg','image/png','image/webp'];
+    const picked = Array.from(fileList).filter(f => ok.includes(f.type));
+    if (!picked.length) return showErr('Выберите PNG, JPG или WEBP');
+    const room = 20 - photos.length;
+    if (room <= 0) return showErr('Максимум 20 фото');
+    for (const f of picked.slice(0, room)) {
+        const url = URL.createObjectURL(f);
+        const img = await loadImg(f);
+        photos.push({ file: f, img, objectURL: url });
+    }
+    renderGrid();
+    hideErr();
+}
+
+function loadImg(file) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = e.target.result; };
+        r.onerror = rej;
+        r.readAsDataURL(file);
+    });
+}
+
+function removePhoto(i) { URL.revokeObjectURL(photos[i].objectURL); photos.splice(i,1); renderGrid(); }
+
+function renderGrid() {
+    const n = photos.length;
+    photoCountTx.textContent = n;
+    photoBadge.classList.toggle('hidden', n===0);
+    previewGrid.classList.toggle('hidden', n===0);
+    photoBadge.className = n >= 5 ? 'badge bg-green-900/40 text-green-400' : 'badge bg-amber-900/30 text-amber-400';
+    previewGrid.innerHTML = photos.map((p,i) => `
+        <div class="photo-thumb border border-gray-800/50">
+            <img src="${p.objectURL}" alt="Фото ${i+1}">
+            <div class="remove-btn" onclick="removePhoto(${i})">✕</div>
+            <div class="absolute bottom-1 left-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-md font-medium">${i+1}</div>
+        </div>`).join('');
+}
+
+function showErr(m) { photoError.textContent = m; photoError.classList.remove('hidden'); }
+function hideErr()  { photoError.classList.add('hidden'); }
+
+// ============================================================
+// GEMINI API
+// ============================================================
+async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9) {
+    const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`;
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': key
+        },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature, maxOutputTokens: maxTokens }
+        })
+    });
+    if (!resp.ok) {
+        const e = await resp.json().catch(() => ({}));
+        throw new Error(e?.error?.message || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+}
+
+async function testApiKey() {
+    const key = $('#api-key').value.trim();
+    const st = $('#api-status');
+    const btn = $('#test-api-btn');
+    if (!key) { st.textContent = 'Введите API ключ'; st.className='mt-2 text-xs text-red-400'; st.classList.remove('hidden'); return; }
+    btn.disabled = true; btn.textContent = '...';
+    st.textContent = 'Проверка...'; st.className='mt-2 text-xs text-gray-400'; st.classList.remove('hidden');
+    try {
+        await geminiFetch('Ответь одним словом: ок', key);
+        localStorage.setItem('gemini_api_key', key);
+        st.textContent = '✓ Ключ действителен'; st.className='mt-2 text-xs text-green-400';
+    } catch (e) {
+        st.textContent = '✗ ' + e.message; st.className='mt-2 text-xs text-red-400';
+    }
+    btn.disabled = false; btn.textContent = 'Проверить';
+}
+
+// ============================================================
+// CAPTION GENERATION — batch + diversity engine
+// ============================================================
+
+/* Parse a numbered list like:
+   1. Текст подписи
+   2. Другой текст
+   ...into an array of strings */
+function parseNumberedList(raw) {
+    return raw
+        .split('\n')
+        .map(l => l.replace(/^\s*\d{1,2}[\.\)\-]\s*/, '').trim())
+        .filter(l => l.length > 0);
+}
+
+/* --- STEP 1: batch-generate all captions at once --- */
+async function generateBatchCaptions(key, name, price, area, district, features) {
+    const n = photos.length;
+
+    const prompt = `Ты — лучший копирайтер рекламы недвижимости в России. Пишешь для соцсетей и видео-презентаций.
+
+Объект: «${name}»
+Цена: ${price}
+Площадь: ${area}
+Район: ${district}
+Преимущества: ${features}
+Количество фото: ${n}
+
+Задача: придумай ${n} подписей — по одной для каждого слайда видео-презентации.
+
+⚠️ КРИТИЧЕСКИ ВАЖНО — РАЗНООБРАЗИЕ:
+Каждая подпись должна кардинально отличаться от остальных по СТИЛЮ, УГЛУ и ЭНЕРГИИ.
+
+Используй РАЗНЫЕ приёмы для разных слайдов (выбери подходящие для ${n} слайдов):
+- Конкретная выгода («Паркинг и кладовая уже включены»)
+- Эмоция / мечта («Просыпайся с видом на парк»)
+- Вопрос («Готовы к новой жизни?»)
+- Эксклюзивность («Единственная такая на Невском»)
+- Цифры / факты («89 м² — пространство для семьи»)
+- Срочность («Осталось 2 квартиры в продаже»)
+- Образ жизни («Вечера на террасе, утро в парке»)
+- Социальное доказательство («Выбор 500+ семей»)
+- Рифма / игра слов («Невский — не просто адрес, а стиль»)
+- Контраст («Тишина в центре шумного города»)
+- Призыв к действию («Запишитесь на просмотр прямо сейчас»)
+- Метафора («Жизнь в самом сердце города пульсирует здесь»)
+
+Требования:
+- Максимум 8 слов на подпись (строго!)
+- Русский язык, живой, продающий
+- Никаких повторяющихся конструкций
+- Не начинай две подряд с одинаковой буквы/слова
+- Первая подпись — про первый контакт с объектом
+- Последняя подпись — призыв записаться на просмотр
+
+Формат ответа — ТОЛЬКО пронумерованный список, без пояснений:
+1. [подпись для слайда 1]
+2. [подпись для слайда 2]
+...`;
+
+    setProgress(5, 'Gemini генерирует все подписи разом…');
+
+    const raw = await geminiFetch(prompt, key, 1200, 1.0);
+    let captions = parseNumberedList(raw);
+
+    // pad or trim to exact count
+    while (captions.length < n) captions.push(`Фото ${captions.length + 1}`);
+    if (captions.length > n) captions = captions.slice(0, n);
+
+    return captions;
+}
+
+/* --- STEP 2: second pass — review & rewrite similar / weak ones --- */
+async function diversityReview(key, captions, name, price) {
+    setProgress(18, 'Проверка на разнообразие…');
+
+    const list = captions.map((c, i) => `${i + 1}. ${c}`).join('\n');
+
+    const prompt = `Ты — критик рекламных текстов. Перед тобой ${captions.length} подписей для видео-слайдшоу объекта «${name}» (${price}).
+
+Подписи:
+${list}
+
+Проверь их и НАПИШИ ЗАНОВО те, которые:
+1) Похожи друг на друга по структуре или словами
+2) Слишком скучные / шаблонные
+3) Не вписываются в 8 слов
+
+⚠️ ОБЯЗАТЕЛЬНО: каждая новая подпись должна быть уникальным приёмом.
+Не дублируй структуру «Прилагательное + Существительное + Глагол».
+
+Формат — ТОЛЬКО пронумерованный список ВСЕХ ${captions.length} подписей (даже те, что не изменились):
+1. [подпись]
+2. [подпись]
+...`;
+
+    const raw = await geminiFetch(prompt, key, 1200, 0.95);
+    const fixed = parseNumberedList(raw);
+
+    if (fixed.length === captions.length) return fixed;
+    // if parse failed, return originals
+    return captions;
+}
+
+/* --- MAIN ENTRY --- */
+async function generateCaptions() {
+    const key = $('#api-key').value.trim();
+    if (!key) throw new Error('Не указан API ключ Gemini');
+
+    const name     = $('#prop-name').value.trim();
+    const price    = $('#prop-price').value.trim();
+    const area     = $('#prop-area').value.trim();
+    const district = $('#prop-district').value.trim();
+    const features = $('#prop-features').value.trim();
+
+    // STEP 1: batch generate
+    setProgress(3, 'Запрос к Gemini (batch)…');
+    let captions = await generateBatchCaptions(key, name, price, area, district, features);
+
+    setProgress(15, `Получено ${captions.length} подписей ✓`);
+    await delay(400);
+
+    // STEP 2: diversity review & rewrite
+    try {
+        captions = await diversityReview(key, captions, name, price);
+    } catch (e) {
+        console.warn('Diversity review skipped:', e.message);
+        // keep originals — non-critical
+    }
+
+    return captions;
+}
+
+// ============================================================
+// CANVAS — RENDERING HELPERS
+// ============================================================
+
+/* Cover-fit image into box */
+function drawImageCover(ctx, img, x, y, w, h) {
+    const ir = img.naturalWidth / img.naturalHeight;
+    const br = w / h;
+    let sx, sy, sw, sh;
+    if (ir > br) { sh = img.naturalHeight; sw = sh*br; sx = (img.naturalWidth-sw)/2; sy = 0; }
+    else         { sw = img.naturalWidth;  sh = sw/br; sx = 0; sy = (img.naturalHeight-sh)/2; }
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+/* Word-wrap text into lines */
+function wrapText(ctx, text, maxW) {
+    const words = text.split(/\s+/);
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && cur) {
+            lines.push(cur);
+            cur = w;
+        } else {
+            cur = test;
+        }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+}
+
+/* Draw centered text with shadow, supports multi-line */
+function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+
+    const lines = wrapText(ctx, text, maxW);
+    const totalH = lines.length * (lineHeight || 38);
+    let cy = y - totalH/2 + (lineHeight || 38) * 0.35;
+
+    for (const line of lines) {
+        ctx.fillText(line, x, cy, maxW);
+        cy += (lineHeight || 38);
+    }
+    ctx.restore();
+}
+
+/* Bottom gradient overlay */
+function drawBottomGrad(ctx, h) {
+    const g = ctx.createLinearGradient(0, CH-h, 0, CH);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.35, 'rgba(0,0,0,0.5)');
+    g.addColorStop(1, 'rgba(0,0,0,0.9)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, CH-h, CW, h);
+}
+
+/* ============================================================
+   SLIDE RENDERERS
+   ============================================================ */
+
+function renderTitleSlide(ctx, alpha) {
+    const name  = $('#prop-name').value.trim() || 'Объект недвижимости';
+    const price = $('#prop-price').value.trim();
+    const area  = $('#prop-area').value.trim();
+    const dist  = $('#prop-district').value.trim();
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (photos.length) {
+        drawImageCover(ctx, photos[0].img, 0, 0, CW, CH);
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0, 0, CW, CH);
+    } else {
+        const bg = ctx.createLinearGradient(0,0,CW,CH);
+        bg.addColorStop(0,'#0f172a'); bg.addColorStop(1,'#1e1b4b');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0,0,CW,CH);
+    }
+
+    ctx.textAlign = 'center';
+
+    // Decorative accent
+    ctx.fillStyle = '#6366f1';
+    ctx.fillRect(CW/2-40, CH/2-145, 80, 4);
+
+    // Name
+    ctx.font = 'bold 52px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#fff';
+    drawCenteredText(ctx, name, CW/2, CH/2 - 55, CW-140, 60);
+
+    // Price
+    if (price) {
+        ctx.font = '700 42px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#a5b4fc';
+        drawCenteredText(ctx, price, CW/2, CH/2 + 25, CW-140, 48);
+    }
+
+    // Subline
+    const sub = [area, dist].filter(Boolean).join(' • ');
+    if (sub) {
+        ctx.font = '400 20px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        drawCenteredText(ctx, sub, CW/2, CH/2 + 90, CW-140, 28);
+    }
+
+    ctx.restore();
+}
+
+function renderPhotoSlide(ctx, idx, alpha) {
+    const photo   = photos[idx];
+    const caption = captions[idx] || `Фото ${idx+1}`;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawImageCover(ctx, photo.img, 0, 0, CW, CH);
+    drawBottomGrad(ctx, 200);
+
+    // Caption
+    ctx.font = '600 30px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#fff';
+    drawCenteredText(ctx, caption, CW/2, CH-85, CW-120, 38);
+
+    // Counter
+    ctx.textAlign = 'center';
+    ctx.font = '400 15px Inter, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH-28);
+
+    ctx.restore();
+}
+
+function renderContactSlide(ctx, alpha) {
+    const contacts = $('#contact-info').value.trim() || 'Контактная информация';
+    const name  = $('#prop-name').value.trim();
+    const price = $('#prop-price').value.trim();
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (photos.length) {
+        drawImageCover(ctx, photos[photos.length-1].img, 0, 0, CW, CH);
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0,0,CW,CH);
+    } else {
+        const bg = ctx.createLinearGradient(0,0,CW,CH);
+        bg.addColorStop(0,'#1e1b4b'); bg.addColorStop(1,'#0f172a');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0,0,CW,CH);
+    }
+
+    ctx.textAlign = 'center';
+
+    ctx.font = 'bold 44px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#fff';
+    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2-100, CW-140, 52);
+
+    ctx.fillStyle = '#6366f1';
+    ctx.fillRect(CW/2-30, CH/2-60, 60, 3);
+
+    if (name) {
+        ctx.font = '500 22px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#c7d2fe';
+        drawCenteredText(ctx, name, CW/2, CH/2-15, CW-140, 30);
+    }
+    if (price) {
+        ctx.font = '700 28px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#a5b4fc';
+        drawCenteredText(ctx, price, CW/2, CH/2+30, CW-140, 34);
+    }
+
+    // Contact lines
+    ctx.font = '500 20px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#e2e8f0';
+    const lines = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
+    lines.forEach((l,i) => {
+        drawCenteredText(ctx, l, CW/2, CH/2+95+i*34, CW-140, 28);
+    });
+
+    ctx.restore();
+}
+
+// ============================================================
+// BUILD SLIDES DATA
+// ============================================================
+function buildSlides() {
+    const slides = [];
+    slides.push({ type:'title', render: renderTitleSlide });
+    for (let i = 0; i < photos.length; i++) {
+        slides.push({ type:'photo', idx: i, render: (c,a) => renderPhotoSlide(c,i,a) });
+    }
+    slides.push({ type:'contact', render: renderContactSlide });
+    return slides;
+}
+
+// ============================================================
+// VIDEO RECORDING (Canvas → MediaRecorder)
+// ============================================================
+function recordVideo(canvas, ctx, slides) {
+    return new Promise((resolve, reject) => {
+        const totalDur = slides.length * SLIDE_DUR - (slides.length - 1) * FADE_DUR;
+        const stream = canvas.captureStream(30);
+
+        const mimes = [
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+            'video/webm'
+        ];
+        const mime = mimes.find(m => MediaRecorder.isTypeSupported(m));
+        if (!mime) return reject(new Error('Браузер не поддерживает запись видео'));
+
+        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5_000_000 });
+        const chunks = [];
+        rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+        rec.onstop = () => resolve(new Blob(chunks, { type: mime }));
+        rec.onerror = () => reject(new Error('Ошибка MediaRecorder'));
+
+        rec.start(100);
+        const t0 = performance.now();
+
+        function frame(now) {
+            const t = (now - t0) / 1000;
+            if (t >= totalDur + 0.3) { rec.stop(); return; }
+
+            setProgress(25 + Math.round(Math.min(t/totalDur,1)*63),
+                        `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
+
+            ctx.clearRect(0,0,CW,CH);
+
+            for (let i = 0; i < slides.length; i++) {
+                const sStart = i * (SLIDE_DUR - FADE_DUR);
+                const sEnd   = sStart + SLIDE_DUR;
+                if (t >= sStart - 0.02 && t < sEnd + 0.02) {
+                    let alpha = 1;
+                    if (t < sStart + FADE_DUR) alpha = clamp01((t - sStart) / FADE_DUR);
+                    if (t > sEnd   - FADE_DUR) alpha = clamp01((sEnd - t)   / FADE_DUR);
+                    slides[i].render(ctx, alpha);
+                }
+            }
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    });
+}
+
+// ============================================================
+// MP4 CONVERSION (FFmpeg.wasm — optional)
+// ============================================================
+async function convertToMP4(webmBlob) {
+    if (typeof SharedArrayBuffer === 'undefined') {
+        setProgress(92, 'SharedArrayBuffer недоступен → сохраняем WebM');
+        await delay(1200);
+        return null;
+    }
+    try {
+        setProgress(91, 'Загрузка FFmpeg.wasm…');
+        const { FFmpeg }    = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
+        const { fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js');
+        const ffmpeg = new FFmpeg();
+        ffmpeg.on('progress', ({ progress: p }) => {
+            setProgress(91 + Math.round(Math.min(p,1)*7), `MP4: ${Math.round(p*100)}%`);
+        });
+        await ffmpeg.load({
+            coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+            wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm'
+        });
+        setProgress(93, 'Конвертация WebM → MP4…');
+        await ffmpeg.writeFile('in.webm', await fetchFile(webmBlob));
+        await ffmpeg.exec(['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
+        const data = await ffmpeg.readFile('out.mp4');
+        await ffmpeg.deleteFile('in.webm');
+        await ffmpeg.deleteFile('out.mp4');
+        return new Blob([data.buffer], { type:'video/mp4' });
+    } catch (e) {
+        console.warn('FFmpeg failed:', e);
+        setProgress(96, 'MP4 не удался → сохраняем WebM');
+        await delay(1200);
+        return null;
+    }
+}
+
+// ============================================================
+// MAIN GENERATION FLOW
+// ============================================================
+async function startGeneration() {
+    if (isGenerating) return;
+
+    const errs = [];
+    if (photos.length < 5)  errs.push('Загрузите минимум 5 фото');
+    if (photos.length > 20) errs.push('Максимум 20 фото');
+    if (!$('#prop-name').value.trim())  errs.push('Укажите название');
+    if (!$('#prop-price').value.trim()) errs.push('Укажите цену');
+    if (!$('#api-key').value.trim())    errs.push('Укажите API ключ Gemini');
+    if (errs.length) { alert(errs.join('\n')); return; }
+
+    isGenerating = true;
+    genBtn.disabled = true;
+    genBtn.innerHTML = '<span class="spinner">⏳</span> Генерация…';
+    progressSec.classList.remove('hidden');
+    previewSec.classList.add('hidden');
+    videoBlob = null;
+    resetSteps();
+    progressSec.scrollIntoView({ behavior:'smooth', block:'center' });
+
+    try {
+        // 1) Captions
+        setActive(1);
+        captions = await generateCaptions();
+        setDone(1);
+
+        // 2) Build slides
+        setActive(2);
+        setProgress(20, 'Подготовка слайдов…');
+        const slides = buildSlides();
+        slidesSnapshot = slides;
+        await delay(150);
+        setDone(2);
+
+        // 3) Record
+        setActive(3);
+        setProgress(25, 'Запись видео…');
+        const recCanvas = document.createElement('canvas');
+        recCanvas.width = CW; recCanvas.height = CH;
+        const recCtx = recCanvas.getContext('2d');
+        videoBlob = await recordVideo(recCanvas, recCtx, slides);
+        setDone(3);
+
+        // 4) MP4
+        setActive(4);
+        setProgress(90, 'Конвертация…');
+        const mp4 = await convertToMP4(videoBlob);
+        if (mp4) videoBlob = mp4;
+        setDone(4);
+
+        // Done
+        setProgress(100, 'Видео готово! 🎉');
+        await delay(300);
+        previewSec.classList.remove('hidden');
+        setupPreview(slides);
+        previewSec.scrollIntoView({ behavior:'smooth', block:'center' });
+
+        const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+        downloadInfo.textContent = `Формат: ${ext.toUpperCase()} • ${(videoBlob.size/1048576).toFixed(1)} МБ`;
+
+    } catch (e) {
+        console.error(e);
+        setProgress(0, 'Ошибка: ' + e.message);
+        progressTx.style.color = '#f87171';
+    }
+
+    isGenerating = false;
+    genBtn.disabled = false;
+    genBtn.innerHTML = '🎬 Создать видео';
+}
+
+// ============================================================
+// PREVIEW
+// ============================================================
+function setupPreview(slides) {
+    const pc  = previewCanvas;
+    const pctx = pc.getContext('2d');
+    slides[0].render(pctx, 1);
+
+    let playing = false;
+    pc.style.cursor = 'pointer';
+    pc.onclick = () => {
+        if (playing) return;
+        playing = true;
+        const dur = slides.length * SLIDE_DUR - (slides.length-1) * FADE_DUR;
+        const t0 = performance.now();
+        function tick(now) {
+            const t = (now - t0)/1000;
+            if (t >= dur) { playing = false; slides[slides.length-1].render(pctx,1); return; }
+            pctx.clearRect(0,0,CW,CH);
+            for (let i=0;i<slides.length;i++) {
+                const s = i*(SLIDE_DUR-FADE_DUR), e = s+SLIDE_DUR;
+                if (t >= s-0.02 && t < e+0.02) {
+                    let a = 1;
+                    if (t < s+FADE_DUR) a = clamp01((t-s)/FADE_DUR);
+                    if (t > e-FADE_DUR) a = clamp01((e-t)/FADE_DUR);
+                    slides[i].render(pctx, a);
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    };
+}
+
+// ============================================================
+// DOWNLOAD
+// ============================================================
+function downloadVideo() {
+    if (!videoBlob) return;
+    const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    const safe = ($('#prop-name').value.trim()||'video').replace(/[^\wа-яА-ЯёЁ]/g,'_');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(videoBlob);
+    a.download = `${safe}_slideshow.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function setProgress(pct, msg) {
+    progressBar.style.width = pct+'%';
+    progressTx.textContent = msg;
+    progressTx.style.color = '';
+    progressPct.textContent = pct+'%';
+}
+
+function resetSteps() {
+    for (let i=1;i<=4;i++) {
+        const ic = $(`#step-icon-${i}`);
+        ic.className = 'step-indicator';
+        ic.textContent = i;
+        $(`#step-label-${i}`).style.color = '';
+    }
+}
+
+function setActive(n) {
+    const ic = $(`#step-icon-${n}`);
+    ic.className = 'step-indicator active';
+    ic.textContent = '⟳';
+    $(`#step-label-${n}`).style.color = '#a5b4fc';
+}
+
+function setDone(n) {
+    const ic = $(`#step-icon-${n}`);
+    ic.className = 'step-indicator done';
+    ic.textContent = '✓';
+    $(`#step-label-${n}`).style.color = '#86efac';
+}
+
+function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
