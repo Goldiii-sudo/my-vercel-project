@@ -359,6 +359,10 @@
                         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
                         Экспорт в MP4
                     </span>
+                    <span class="feature-pill">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                        Карусели Instagram
+                    </span>
                 </div>
 
                 <!-- How it works -->
@@ -367,7 +371,7 @@
                     <svg class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-[10px] font-bold">2</span> Настройте стиль</span>
                     <svg class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center text-[10px] font-bold">3</span> Скачайте видео</span>
+                    <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center text-[10px] font-bold">3</span> Видео или карусель</span>
                 </div>
             </div>
         </header>
@@ -587,17 +591,24 @@
                        placeholder="+7 (999) 123-45-67 • Агентство «Недвижимость PRO»">
             </section>
 
-            <!-- === Generate Button === -->
-            <div class="text-center pt-3 fade-in-up" style="animation-delay:0.2s">
+            <!-- === Generate Buttons === -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3 fade-in-up" style="animation-delay:0.2s">
                 <button id="generate-btn" onclick="startGeneration()"
-                        class="btn-primary px-16 py-4.5 rounded-2xl text-base font-bold text-white tracking-wide">
+                        class="btn-primary px-12 py-4 rounded-2xl text-base font-bold text-white tracking-wide">
                     <span class="flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Создать видео
                     </span>
                 </button>
-                <p class="text-xs text-gray-600 mt-2">Видео создается полностью в вашем браузере</p>
+                <button id="carousel-btn" onclick="startCarouselGeneration()"
+                        class="px-12 py-4 rounded-2xl text-base font-bold text-white tracking-wide border-2 border-indigo-500/40 hover:border-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/20">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Карусель для Instagram
+                    </span>
+                </button>
             </div>
+            <p class="text-center text-xs text-gray-600 mt-2">Видео создается полностью в вашем браузере</p>
 
             <!-- === Progress === -->
             <section id="progress-section" class="glass-card rounded-2xl p-5 hidden">
@@ -648,6 +659,23 @@
                         Скачать видео
                     </button>
                     <p id="download-info" class="text-xs text-gray-500"></p>
+                </div>
+            </section>
+
+            <!-- === Carousel Preview & Download === -->
+            <section id="carousel-section" class="glass-card rounded-2xl p-5 hidden">
+                <h2 class="text-base font-semibold mb-4 flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-lg bg-pink-500/15 flex items-center justify-center text-sm">📸</span>
+                    Карусель для Instagram
+                </h2>
+                <div id="carousel-preview" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4"></div>
+                <div class="flex flex-col items-center gap-3">
+                    <button id="carousel-download-btn" onclick="downloadCarousel()"
+                            class="px-10 py-3.5 rounded-2xl text-base font-bold text-white flex items-center gap-2 border-2 border-pink-500/40 hover:border-pink-400 bg-pink-500/10 hover:bg-pink-500/20 transition-all">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Скачать ZIP
+                    </button>
+                    <p id="carousel-info" class="text-xs text-gray-500"></p>
                 </div>
             </section>
 
@@ -716,6 +744,7 @@ let videoBlob = null;
 let isGenerating = false;
 let slidesSnapshot = [];
 let watermarkImg = null;
+let carouselBlobs = [];
 
 // ============================================================
 // DOM
@@ -1199,6 +1228,22 @@ function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
     ctx.restore();
 }
 
+function drawSpacedText(ctx, text, x, y, spacing) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    const chars = [...text];
+    let totalW = 0;
+    chars.forEach(ch => { totalW += ctx.measureText(ch).width + spacing; });
+    totalW -= spacing;
+    let cx = x - totalW / 2;
+    ctx.textAlign = 'left';
+    chars.forEach(ch => {
+        ctx.fillText(ch, cx, y);
+        cx += ctx.measureText(ch).width + spacing;
+    });
+    ctx.restore();
+}
+
 function drawBottomGrad(ctx, h) {
     const g = ctx.createLinearGradient(0, CH-h, 0, CH);
     g.addColorStop(0, 'rgba(0,0,0,0)');
@@ -1352,9 +1397,10 @@ function renderTitleSlide(ctx, alpha, slideProgress) {
     if (photos.length) {
         drawImageWithKenBurns(ctx, photos[0].img, slideProgress || 0, 0);
         const g = ctx.createLinearGradient(0, 0, 0, CH);
-        g.addColorStop(0, 'rgba(0,0,0,0.3)');
-        g.addColorStop(0.4, 'rgba(0,0,0,0.55)');
-        g.addColorStop(1, 'rgba(0,0,0,0.85)');
+        g.addColorStop(0, 'rgba(0,0,0,0.15)');
+        g.addColorStop(0.35, 'rgba(0,0,0,0.45)');
+        g.addColorStop(0.7, 'rgba(0,0,0,0.7)');
+        g.addColorStop(1, 'rgba(0,0,0,0.88)');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, CW, CH);
     } else {
@@ -1364,17 +1410,21 @@ function renderTitleSlide(ctx, alpha, slideProgress) {
         ctx.fillRect(0,0,CW,CH);
     }
 
-    // Glass card behind text
-    const cardW = CW * 0.8;
-    const cardH = 280 * s;
+    // Glass card with gradient border
+    const cardW = CW * 0.82;
+    const cardH = 320 * s;
     const cardX = (CW - cardW) / 2;
-    const cardY = CH/2 - cardH/2 - 20*s;
+    const cardY = CH/2 - cardH/2 - 10*s;
     ctx.save();
-    ctx.globalAlpha = alpha * 0.25;
-    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 20*s);
-    ctx.fillStyle = 'rgba(99,102,241,0.15)';
+    ctx.globalAlpha = alpha * 0.35;
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 24*s);
+    ctx.fillStyle = 'rgba(15,23,42,0.55)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(165,180,252,0.2)';
+    const borderGrad = ctx.createLinearGradient(cardX, cardY, cardX+cardW, cardY+cardH);
+    borderGrad.addColorStop(0, 'rgba(129,140,248,0.35)');
+    borderGrad.addColorStop(0.5, 'rgba(192,132,252,0.2)');
+    borderGrad.addColorStop(1, 'rgba(129,140,248,0.35)');
+    ctx.strokeStyle = borderGrad;
     ctx.lineWidth = 1.5 * s;
     ctx.stroke();
     ctx.restore();
@@ -1382,40 +1432,64 @@ function renderTitleSlide(ctx, alpha, slideProgress) {
 
     ctx.textAlign = 'center';
 
-    // Top decorative accent line
-    const accentW = 60 * s;
-    const gAcc = ctx.createLinearGradient(CW/2-accentW, CH/2 - 130*s, CW/2+accentW, CH/2 - 130*s);
-    gAcc.addColorStop(0, '#818cf8');
-    gAcc.addColorStop(1, '#c084fc');
+    // Top decorative element — two thin lines with dot
+    const accentW = 50 * s;
+    const accentY = CH/2 - 145*s;
+    const gAcc = ctx.createLinearGradient(CW/2-accentW*1.5, accentY, CW/2+accentW*1.5, accentY);
+    gAcc.addColorStop(0, 'rgba(129,140,248,0)');
+    gAcc.addColorStop(0.2, 'rgba(129,140,248,0.8)');
+    gAcc.addColorStop(0.5, 'rgba(192,132,252,1)');
+    gAcc.addColorStop(0.8, 'rgba(129,140,248,0.8)');
+    gAcc.addColorStop(1, 'rgba(129,140,248,0)');
     ctx.fillStyle = gAcc;
-    ctx.fillRect(CW/2-accentW/2, CH/2 - 130*s, accentW, 4*s);
+    ctx.fillRect(CW/2-accentW*1.5, accentY, accentW*3, 2*s);
 
-    // Name with shadow
+    // Small label above name — spaced letters
+    ctx.font = `600 ${Math.round(14*s)}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(165,180,252,0.7)';
+    drawSpacedText(ctx, 'ЭКСКЛЮЗИВ', CW/2, CH/2 - 110*s, 4*s);
+
+    // Name
     if (!isGenerating) {
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 12 * s;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 15 * s;
     }
-    ctx.font = `800 ${Math.round(54*s)}px Inter, system-ui, sans-serif`;
+    ctx.font = `800 ${Math.round(52*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, name, CW/2, CH/2 - 40*s, CW-160*s, 62*s);
+    drawCenteredText(ctx, name, CW/2, CH/2 - 30*s, CW-180*s, 60*s);
     ctx.shadowBlur = 0;
 
-    // Price with gradient
+    // Price pill with gradient background
     if (price) {
-        ctx.font = `700 ${Math.round(44*s)}px Inter, system-ui, sans-serif`;
+        ctx.font = `700 ${Math.round(40*s)}px Inter, system-ui, sans-serif`;
+        const pMetrics = ctx.measureText(price);
+        const pillW = pMetrics.width + 50*s;
+        const pillH = 58*s;
+        const pillX = CW/2 - pillW/2;
+        const pillY = CH/2 + 25*s;
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.25;
+        drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 16*s);
+        const pillGrad = ctx.createLinearGradient(pillX, pillY, pillX+pillW, pillY);
+        pillGrad.addColorStop(0, 'rgba(99,102,241,0.4)');
+        pillGrad.addColorStop(1, 'rgba(168,85,247,0.3)');
+        ctx.fillStyle = pillGrad;
+        ctx.fill();
+        ctx.restore();
+        ctx.globalAlpha = alpha;
         const pGrad = ctx.createLinearGradient(CW/2-100*s, 0, CW/2+100*s, 0);
-        pGrad.addColorStop(0, '#a5b4fc');
-        pGrad.addColorStop(1, '#c4b5fd');
+        pGrad.addColorStop(0, '#c7d2fe');
+        pGrad.addColorStop(1, '#ddd6fe');
         ctx.fillStyle = pGrad;
-        drawCenteredText(ctx, price, CW/2, CH/2 + 40*s, CW-160*s, 50*s);
+        ctx.fillText(price, CW/2, CH/2 + 64*s);
     }
 
-    // Subline with icon-like bullet
+    // Area & district with separator dots
     const sub = [area, dist].filter(Boolean).join('  ·  ');
     if (sub) {
-        ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = '#cbd5e1';
-        drawCenteredText(ctx, sub, CW/2, CH/2 + 100*s, CW-160*s, 30*s);
+        ctx.font = `400 ${Math.round(20*s)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = 'rgba(203,213,225,0.85)';
+        drawCenteredText(ctx, sub, CW/2, CH/2 + 120*s, CW-180*s, 28*s);
     }
 
     drawWatermark(ctx);
@@ -1432,49 +1506,63 @@ function renderPhotoSlide(ctx, idx, alpha, slideProgress) {
 
     drawImageWithKenBurns(ctx, photo.img, slideProgress || 0, idx);
 
-    // Enhanced bottom gradient — taller and smoother
-    const gradH = Math.round(300 * s);
+    // Top vignette for counter
+    const topGradH = Math.round(120 * s);
+    const tg = ctx.createLinearGradient(0, 0, 0, topGradH);
+    tg.addColorStop(0, 'rgba(0,0,0,0.5)');
+    tg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = tg;
+    ctx.fillRect(0, 0, CW, topGradH);
+
+    // Bottom gradient
+    const gradH = Math.round(320 * s);
     const g = ctx.createLinearGradient(0, CH-gradH, 0, CH);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.3, 'rgba(0,0,0,0.35)');
-    g.addColorStop(0.7, 'rgba(0,0,0,0.7)');
+    g.addColorStop(0.25, 'rgba(0,0,0,0.25)');
+    g.addColorStop(0.6, 'rgba(0,0,0,0.6)');
     g.addColorStop(1, 'rgba(0,0,0,0.92)');
     ctx.fillStyle = g;
     ctx.fillRect(0, CH-gradH, CW, gradH);
 
     // Caption with text animation
     const textAlpha = slideProgress !== undefined ? Math.min(1, slideProgress * 3) : 1;
-    const textSlide = slideProgress !== undefined ? Math.max(0, (1 - slideProgress * 3)) * 20 * s : 0;
+    const textSlide = slideProgress !== undefined ? Math.max(0, (1 - slideProgress * 3)) * 15 * s : 0;
 
     ctx.save();
     ctx.globalAlpha = alpha * textAlpha;
 
-    // Caption shadow for readability
     if (!isGenerating) {
-        ctx.shadowColor = 'rgba(0,0,0,0.6)';
-        ctx.shadowBlur = 10 * s;
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 12 * s;
     }
-    ctx.font = `600 ${Math.round(32*s)}px Inter, system-ui, sans-serif`;
+    ctx.font = `600 ${Math.round(30*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, caption, CW/2, CH - 90*s + textSlide, CW-120*s, 40*s);
+    drawCenteredText(ctx, caption, CW/2, CH - 80*s + textSlide, CW-100*s, 38*s);
     ctx.shadowBlur = 0;
 
-    // Counter pill
-    ctx.textAlign = 'center';
-    const countText = `${idx+1} / ${photos.length}`;
-    ctx.font = `500 ${Math.round(14*s)}px Inter, system-ui, sans-serif`;
-    const cMetrics = ctx.measureText(countText);
-    const pillW = cMetrics.width + 20*s;
-    const pillH = 24*s;
-    const pillX = CW/2 - pillW/2;
-    const pillY = CH - 42*s;
-    ctx.globalAlpha = alpha * textAlpha * 0.5;
-    drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 12*s);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fill();
-    ctx.globalAlpha = alpha * textAlpha;
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillText(countText, CW/2, CH - 26*s);
+    // Thin accent line under caption
+    const lineW = 40 * s;
+    const lineGrad = ctx.createLinearGradient(CW/2-lineW, 0, CW/2+lineW, 0);
+    lineGrad.addColorStop(0, 'rgba(129,140,248,0)');
+    lineGrad.addColorStop(0.5, 'rgba(129,140,248,0.5)');
+    lineGrad.addColorStop(1, 'rgba(129,140,248,0)');
+    ctx.fillStyle = lineGrad;
+    ctx.fillRect(CW/2-lineW, CH - 46*s + textSlide, lineW*2, 1.5*s);
+
+    ctx.restore();
+
+    // Counter at top-right
+    ctx.save();
+    ctx.textAlign = 'right';
+    ctx.font = `600 ${Math.round(15*s)}px Inter, system-ui, sans-serif`;
+    const countText = `${idx+1}`;
+    const totalText = `/${photos.length}`;
+    const countX = CW - 24*s;
+    const countY = 36*s;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(countText, countX - ctx.measureText(totalText).width, countY);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText(totalText, countX, countY);
     ctx.restore();
 
     drawWatermark(ctx);
@@ -1493,8 +1581,9 @@ function renderContactSlide(ctx, alpha, slideProgress) {
     if (photos.length) {
         drawImageWithKenBurns(ctx, photos[photos.length-1].img, slideProgress || 0, photos.length);
         const ov = ctx.createLinearGradient(0, 0, 0, CH);
-        ov.addColorStop(0, 'rgba(15,23,42,0.75)');
-        ov.addColorStop(1, 'rgba(30,27,75,0.85)');
+        ov.addColorStop(0, 'rgba(15,23,42,0.7)');
+        ov.addColorStop(0.5, 'rgba(15,23,42,0.82)');
+        ov.addColorStop(1, 'rgba(30,27,75,0.9)');
         ctx.fillStyle = ov;
         ctx.fillRect(0,0,CW,CH);
     } else {
@@ -1504,17 +1593,21 @@ function renderContactSlide(ctx, alpha, slideProgress) {
         ctx.fillRect(0,0,CW,CH);
     }
 
-    // Glass card
-    const cardW = CW * 0.75;
-    const cardH = 340 * s;
+    // Glass card with glow border
+    const cardW = CW * 0.78;
+    const cardH = 380 * s;
     const cardX = (CW - cardW) / 2;
     const cardY = CH/2 - cardH/2;
     ctx.save();
-    ctx.globalAlpha = alpha * 0.3;
+    ctx.globalAlpha = alpha * 0.35;
     drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 24*s);
-    ctx.fillStyle = 'rgba(99,102,241,0.12)';
+    ctx.fillStyle = 'rgba(15,23,42,0.5)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(165,180,252,0.2)';
+    const borderGrad = ctx.createLinearGradient(cardX, cardY, cardX+cardW, cardY+cardH);
+    borderGrad.addColorStop(0, 'rgba(129,140,248,0.4)');
+    borderGrad.addColorStop(0.5, 'rgba(192,132,252,0.25)');
+    borderGrad.addColorStop(1, 'rgba(129,140,248,0.4)');
+    ctx.strokeStyle = borderGrad;
     ctx.lineWidth = 1.5 * s;
     ctx.stroke();
     ctx.restore();
@@ -1522,44 +1615,47 @@ function renderContactSlide(ctx, alpha, slideProgress) {
 
     ctx.textAlign = 'center';
 
-    // CTA title with shadow
+    // CTA title
     if (!isGenerating) {
-        ctx.shadowColor = 'rgba(0,0,0,0.4)';
-        ctx.shadowBlur = 10 * s;
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 12 * s;
     }
-    ctx.font = `800 ${Math.round(46*s)}px Inter, system-ui, sans-serif`;
+    ctx.font = `800 ${Math.round(42*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, 'Свяжитесь с нами', CW/2, CH/2-100*s, CW-160*s, 54*s);
+    drawCenteredText(ctx, 'Свяжитесь с нами', CW/2, CH/2-110*s, CW-160*s, 50*s);
     ctx.shadowBlur = 0;
 
     // Gradient accent line
-    const accW = 70 * s;
-    const gAcc = ctx.createLinearGradient(CW/2-accW, 0, CW/2+accW, 0);
-    gAcc.addColorStop(0, '#818cf8');
-    gAcc.addColorStop(1, '#c084fc');
+    const accW = 50 * s;
+    const gAcc = ctx.createLinearGradient(CW/2-accW*1.5, 0, CW/2+accW*1.5, 0);
+    gAcc.addColorStop(0, 'rgba(129,140,248,0)');
+    gAcc.addColorStop(0.2, 'rgba(129,140,248,0.8)');
+    gAcc.addColorStop(0.5, 'rgba(192,132,252,1)');
+    gAcc.addColorStop(0.8, 'rgba(129,140,248,0.8)');
+    gAcc.addColorStop(1, 'rgba(129,140,248,0)');
     ctx.fillStyle = gAcc;
-    ctx.fillRect(CW/2-accW/2, CH/2-55*s, accW, 3.5*s);
+    ctx.fillRect(CW/2-accW*1.5, CH/2-65*s, accW*3, 2*s);
 
     if (name) {
-        ctx.font = `500 ${Math.round(24*s)}px Inter, system-ui, sans-serif`;
+        ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#e0e7ff';
-        drawCenteredText(ctx, name, CW/2, CH/2-10*s, CW-160*s, 32*s);
+        drawCenteredText(ctx, name, CW/2, CH/2-20*s, CW-160*s, 30*s);
     }
     if (price) {
-        ctx.font = `700 ${Math.round(30*s)}px Inter, system-ui, sans-serif`;
+        ctx.font = `700 ${Math.round(28*s)}px Inter, system-ui, sans-serif`;
         const pGrad = ctx.createLinearGradient(CW/2-80*s, 0, CW/2+80*s, 0);
-        pGrad.addColorStop(0, '#a5b4fc');
-        pGrad.addColorStop(1, '#c4b5fd');
+        pGrad.addColorStop(0, '#c7d2fe');
+        pGrad.addColorStop(1, '#ddd6fe');
         ctx.fillStyle = pGrad;
-        drawCenteredText(ctx, price, CW/2, CH/2+35*s, CW-160*s, 36*s);
+        drawCenteredText(ctx, price, CW/2, CH/2+25*s, CW-160*s, 34*s);
     }
 
-    // Contact lines
-    ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
+    // Contact lines with icons
+    ctx.font = `400 ${Math.round(20*s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#e2e8f0';
     const lines = contacts.split(/[,;|]/).map(l=>l.trim()).filter(Boolean);
     lines.forEach((l,i) => {
-        drawCenteredText(ctx, l, CW/2, CH/2+100*s+i*36*s, CW-160*s, 30*s);
+        drawCenteredText(ctx, l, CW/2, CH/2+85*s+i*34*s, CW-140*s, 28*s);
     });
 
     drawWatermark(ctx);
@@ -1930,6 +2026,348 @@ function setupPreview(slides) {
 // ============================================================
 // DOWNLOAD
 // ============================================================
+// ============================================================
+// CAROUSEL GENERATION (Instagram 1080x1350 images)
+// ============================================================
+const CAROUSEL_W = 1080;
+const CAROUSEL_H = 1350;
+
+function renderCarouselSlide(ctx, type, idx) {
+    const s = Math.min(CAROUSEL_W, CAROUSEL_H) / 1080;
+    const cw = CAROUSEL_W, ch = CAROUSEL_H;
+    ctx.clearRect(0, 0, cw, ch);
+
+    if (type === 'title') {
+        const name  = $('#prop-name').value.trim() || 'Объект недвижимости';
+        const price = $('#prop-price').value.trim();
+        const area  = $('#prop-area').value.trim();
+        const dist  = $('#prop-district').value.trim();
+
+        if (photos.length) {
+            const img = photos[0].img;
+            const imgRatio = img.naturalWidth / img.naturalHeight;
+            const canvasRatio = cw / ch;
+            let sw, sh, sx, sy;
+            if (imgRatio > canvasRatio) {
+                sh = img.naturalHeight; sw = sh * canvasRatio;
+                sx = (img.naturalWidth - sw) / 2; sy = 0;
+            } else {
+                sw = img.naturalWidth; sh = sw / canvasRatio;
+                sx = 0; sy = (img.naturalHeight - sh) / 2;
+            }
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+            const g = ctx.createLinearGradient(0, 0, 0, ch);
+            g.addColorStop(0, 'rgba(0,0,0,0.2)');
+            g.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+            g.addColorStop(1, 'rgba(0,0,0,0.88)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, cw, ch);
+        } else {
+            const bg = ctx.createLinearGradient(0,0,cw,ch);
+            bg.addColorStop(0,'#0f172a'); bg.addColorStop(1,'#1e1b4b');
+            ctx.fillStyle = bg; ctx.fillRect(0,0,cw,ch);
+        }
+
+        // Accent line
+        const accW = 60 * s;
+        const gAcc = ctx.createLinearGradient(cw/2-accW, 0, cw/2+accW, 0);
+        gAcc.addColorStop(0, '#818cf8'); gAcc.addColorStop(1, '#c084fc');
+        ctx.fillStyle = gAcc;
+        ctx.fillRect(cw/2-accW/2, ch/2 - 100*s, accW, 4*s);
+
+        ctx.textAlign = 'center';
+        ctx.font = `800 ${Math.round(52*s)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#fff';
+        drawCenteredTextAt(ctx, name, cw/2, ch/2 - 20*s, cw-120*s, 60*s);
+
+        if (price) {
+            ctx.font = `700 ${Math.round(40*s)}px Inter, system-ui, sans-serif`;
+            const pGrad = ctx.createLinearGradient(cw/2-100*s, 0, cw/2+100*s, 0);
+            pGrad.addColorStop(0, '#a5b4fc'); pGrad.addColorStop(1, '#c4b5fd');
+            ctx.fillStyle = pGrad;
+            drawCenteredTextAt(ctx, price, cw/2, ch/2 + 55*s, cw-120*s, 48*s);
+        }
+
+        const sub = [area, dist].filter(Boolean).join('  ·  ');
+        if (sub) {
+            ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
+            ctx.fillStyle = '#cbd5e1';
+            drawCenteredTextAt(ctx, sub, cw/2, ch/2 + 110*s, cw-120*s, 30*s);
+        }
+
+        drawWatermarkAt(ctx, cw, ch, s);
+
+    } else if (type === 'photo') {
+        const photo = photos[idx];
+        const caption = captions[idx] || `Фото ${idx+1}`;
+        const img = photo.img;
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+        const canvasRatio = cw / ch;
+        let sw, sh, sx, sy;
+        if (imgRatio > canvasRatio) {
+            sh = img.naturalHeight; sw = sh * canvasRatio;
+            sx = (img.naturalWidth - sw) / 2; sy = 0;
+        } else {
+            sw = img.naturalWidth; sh = sw / canvasRatio;
+            sx = 0; sy = (img.naturalHeight - sh) / 2;
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+
+        const gradH = Math.round(280 * s);
+        const g = ctx.createLinearGradient(0, ch-gradH, 0, ch);
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(0.3, 'rgba(0,0,0,0.3)');
+        g.addColorStop(0.7, 'rgba(0,0,0,0.65)');
+        g.addColorStop(1, 'rgba(0,0,0,0.9)');
+        ctx.fillStyle = g; ctx.fillRect(0, ch-gradH, cw, gradH);
+
+        ctx.textAlign = 'center';
+        ctx.font = `600 ${Math.round(30*s)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#fff';
+        drawCenteredTextAt(ctx, caption, cw/2, ch - 80*s, cw-100*s, 38*s);
+
+        // Counter pill
+        const countText = `${idx+1} / ${photos.length}`;
+        ctx.font = `500 ${Math.round(14*s)}px Inter, system-ui, sans-serif`;
+        const pillW = ctx.measureText(countText).width + 20*s;
+        const pillH = 24*s;
+        ctx.globalAlpha = 0.5;
+        drawRoundedRect(ctx, cw/2-pillW/2, ch-42*s, pillW, pillH, 12*s);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText(countText, cw/2, ch-26*s);
+
+        drawWatermarkAt(ctx, cw, ch, s);
+
+    } else if (type === 'contact') {
+        const contacts = $('#contact-info').value.trim() || 'Контактная информация';
+        const name  = $('#prop-name').value.trim();
+        const price = $('#prop-price').value.trim();
+
+        if (photos.length) {
+            const img = photos[photos.length-1].img;
+            const imgRatio = img.naturalWidth / img.naturalHeight;
+            const canvasRatio = cw / ch;
+            let sw, sh, sx, sy;
+            if (imgRatio > canvasRatio) {
+                sh = img.naturalHeight; sw = sh * canvasRatio;
+                sx = (img.naturalWidth - sw) / 2; sy = 0;
+            } else {
+                sw = img.naturalWidth; sh = sw / canvasRatio;
+                sx = 0; sy = (img.naturalHeight - sh) / 2;
+            }
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+            const ov = ctx.createLinearGradient(0,0,0,ch);
+            ov.addColorStop(0, 'rgba(15,23,42,0.75)');
+            ov.addColorStop(1, 'rgba(30,27,75,0.85)');
+            ctx.fillStyle = ov; ctx.fillRect(0,0,cw,ch);
+        } else {
+            const bg = ctx.createLinearGradient(0,0,cw,ch);
+            bg.addColorStop(0,'#1e1b4b'); bg.addColorStop(1,'#0f172a');
+            ctx.fillStyle = bg; ctx.fillRect(0,0,cw,ch);
+        }
+
+        ctx.textAlign = 'center';
+        ctx.font = `800 ${Math.round(42*s)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#fff';
+        drawCenteredTextAt(ctx, 'Свяжитесь с нами', cw/2, ch/2-90*s, cw-120*s, 50*s);
+
+        const accW = 60*s;
+        const gAcc = ctx.createLinearGradient(cw/2-accW,0,cw/2+accW,0);
+        gAcc.addColorStop(0,'#818cf8'); gAcc.addColorStop(1,'#c084fc');
+        ctx.fillStyle = gAcc;
+        ctx.fillRect(cw/2-accW/2, ch/2-45*s, accW, 3.5*s);
+
+        if (name) {
+            ctx.font = `500 ${Math.round(22*s)}px Inter, system-ui, sans-serif`;
+            ctx.fillStyle = '#e0e7ff';
+            drawCenteredTextAt(ctx, name, cw/2, ch/2+5*s, cw-120*s, 30*s);
+        }
+        if (price) {
+            ctx.font = `700 ${Math.round(28*s)}px Inter, system-ui, sans-serif`;
+            const pGrad = ctx.createLinearGradient(cw/2-80*s,0,cw/2+80*s,0);
+            pGrad.addColorStop(0,'#a5b4fc'); pGrad.addColorStop(1,'#c4b5fd');
+            ctx.fillStyle = pGrad;
+            drawCenteredTextAt(ctx, price, cw/2, ch/2+45*s, cw-120*s, 34*s);
+        }
+
+        ctx.font = `500 ${Math.round(20*s)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#e2e8f0';
+        const lines = contacts.split(/[,;|]/).map(l=>l.trim()).filter(Boolean);
+        lines.forEach((l,i) => {
+            drawCenteredTextAt(ctx, l, cw/2, ch/2+100*s+i*34*s, cw-120*s, 28*s);
+        });
+
+        drawWatermarkAt(ctx, cw, ch, s);
+    }
+}
+
+// Helper: draw centered text (carousel variant without shadow for perf)
+function drawCenteredTextAt(ctx, text, x, y, maxW, lineHeight) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    const lines = wrapText(ctx, text, maxW);
+    const totalH = lines.length * (lineHeight || 38);
+    let cy = y - totalH/2 + (lineHeight || 38) * 0.35;
+    for (const line of lines) {
+        ctx.fillText(line, x, cy, maxW);
+        cy += (lineHeight || 38);
+    }
+    ctx.restore();
+}
+
+// Helper: draw watermark at carousel dimensions
+function drawWatermarkAt(ctx, cw, ch, s) {
+    if (!watermarkImg) return;
+    const pos = $('#watermark-position').value;
+    const maxS = 80 * s;
+    const ratio = watermarkImg.naturalWidth / watermarkImg.naturalHeight;
+    let ww, wh;
+    if (ratio > 1) { ww = maxS; wh = maxS / ratio; } else { wh = maxS; ww = maxS * ratio; }
+    const pad = 20 * s;
+    let wx, wy;
+    if (pos === 'top-left')     { wx = pad; wy = pad; }
+    else if (pos === 'top-right')    { wx = cw - ww - pad; wy = pad; }
+    else if (pos === 'bottom-left')  { wx = pad; wy = ch - wh - pad; }
+    else                              { wx = cw - ww - pad; wy = ch - wh - pad; }
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(watermarkImg, wx, wy, ww, wh);
+    ctx.restore();
+}
+
+async function startCarouselGeneration() {
+    if (isGenerating) return;
+
+    const errs = [];
+    if (photos.length < 5)  errs.push('Загрузите минимум 5 фото');
+    if (photos.length > 20) errs.push('Максимум 20 фото');
+    if (!$('#prop-name').value.trim())  errs.push('Укажите название');
+    if (!$('#prop-price').value.trim()) errs.push('Укажите цену');
+    if (!$('#api-key').value.trim())    errs.push('Укажите API ключ Gemini');
+    if (errs.length) { alert(errs.join('\n')); return; }
+
+    isGenerating = true;
+    const carBtn = $('#carousel-btn');
+    carBtn.disabled = true;
+    carBtn.innerHTML = '<span class="spinner">⏳</span> Генерация...';
+    progressSec.classList.remove('hidden');
+    $('#carousel-section').classList.add('hidden');
+    carouselBlobs = [];
+    resetSteps();
+    progressSec.scrollIntoView({ behavior:'smooth', block:'center' });
+
+    try {
+        // 1) Captions
+        setActive(1);
+        captions = await generateCaptions();
+        setDone(1);
+
+        // 2) Render carousel slides
+        setActive(2);
+        setProgress(20, 'Рендеринг слайдов карусели...');
+        const canvas = document.createElement('canvas');
+        canvas.width = CAROUSEL_W;
+        canvas.height = CAROUSEL_H;
+        const ctx = canvas.getContext('2d');
+
+        // Title slide
+        renderCarouselSlide(ctx, 'title', 0);
+        carouselBlobs.push(await canvasToBlob(canvas));
+        setProgress(30, 'Титульный слайд готов');
+
+        // Photo slides
+        for (let i = 0; i < photos.length; i++) {
+            renderCarouselSlide(ctx, 'photo', i);
+            carouselBlobs.push(await canvasToBlob(canvas));
+            setProgress(30 + Math.round((i/photos.length)*55), `Слайд ${i+1}/${photos.length}`);
+        }
+
+        // Contact slide
+        renderCarouselSlide(ctx, 'contact', 0);
+        carouselBlobs.push(await canvasToBlob(canvas));
+        setDone(2);
+
+        // 3) Skip video recording step
+        setActive(3);
+        setProgress(90, 'Подготовка превью...');
+        await delay(200);
+        setDone(3);
+
+        // 4) Skip MP4 conversion
+        setActive(4);
+        setProgress(95, 'Формирование карусели...');
+        await delay(200);
+        setDone(4);
+
+        setProgress(100, 'Карусель готова!');
+        await delay(300);
+
+        // Show carousel preview
+        const carSec = $('#carousel-section');
+        carSec.classList.remove('hidden');
+        const preview = $('#carousel-preview');
+        preview.innerHTML = '';
+        carouselBlobs.forEach((blob, i) => {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(blob);
+            img.className = 'rounded-lg w-full aspect-[4/5] object-cover border border-gray-700/30';
+            img.alt = `Слайд ${i+1}`;
+            preview.appendChild(img);
+        });
+        $('#carousel-info').textContent = `${carouselBlobs.length} слайдов • 1080×1350 • JPEG`;
+        carSec.scrollIntoView({ behavior:'smooth', block:'center' });
+
+    } catch (e) {
+        console.error(e);
+        setProgress(0, 'Ошибка: ' + e.message);
+        progressTx.style.color = '#f87171';
+    }
+
+    isGenerating = false;
+    carBtn.disabled = false;
+    carBtn.innerHTML = `<span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Карусель для Instagram
+    </span>`;
+}
+
+function canvasToBlob(canvas) {
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+}
+
+async function loadJSZip() {
+    if (window.JSZip) return window.JSZip;
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+        s.onload = () => resolve(window.JSZip);
+        s.onerror = reject;
+        document.head.appendChild(s);
+    });
+}
+
+async function downloadCarousel() {
+    if (!carouselBlobs.length) return;
+    const JSZip = await loadJSZip();
+    const zip = new JSZip();
+    const safe = ($('#prop-name').value.trim()||'carousel').replace(/[^\wа-яА-ЯёЁ]/g,'_');
+    carouselBlobs.forEach((blob, i) => {
+        const num = String(i+1).padStart(2,'0');
+        const label = i === 0 ? 'title' : i === carouselBlobs.length-1 ? 'contact' : `photo_${num}`;
+        zip.file(`${safe}_${label}.jpg`, blob);
+    });
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zipBlob);
+    a.download = `${safe}_carousel.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 function downloadVideo() {
     if (!videoBlob) return;
     const ext = videoBlob.type.includes('mp4') ? 'mp4' : 'webm';
