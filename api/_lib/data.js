@@ -6,10 +6,26 @@ let apartmentsCache = null;
 let videoTemplatesCache = null;
 let textTemplatesCache = null;
 
+// Resolve files relative to the *source* file rather than process.cwd(),
+// so the same code works both locally (cwd = repo root) and on Vercel
+// (cwd = /var/task, but our source lives under /var/task/api/_lib/).
+// The repo root from this file is two directories up.
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
+
 function readJSON(relativePath) {
-  const abs = path.join(process.cwd(), relativePath);
-  const raw = fs.readFileSync(abs, 'utf8');
-  return JSON.parse(raw);
+  const candidates = [
+    path.join(REPO_ROOT, relativePath),
+    path.join(process.cwd(), relativePath),
+  ];
+  for (const abs of candidates) {
+    try {
+      const raw = fs.readFileSync(abs, 'utf8');
+      return JSON.parse(raw);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+  }
+  throw new Error(`File not found in any candidate path: ${relativePath} (tried: ${candidates.join(', ')})`);
 }
 
 function loadApartments() {
