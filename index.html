@@ -232,14 +232,14 @@
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.05s">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-base font-semibold flex items-center gap-2">
-                        <span class="text-lg">🔑</span> Gemini API
+                        <span class="text-lg">🔑</span> LLM API <span class="text-xs text-gray-500 font-normal">(NVIDIA NIM / Qwen)</span>
                     </h2>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener"
+                    <a href="https://build.nvidia.com/explore/discover" target="_blank" rel="noopener"
                        class="text-indigo-400 hover:text-indigo-300 text-xs transition">Получить ключ →</a>
                 </div>
                 <p class="text-xs text-gray-500 mb-2">
-                    Ключ хранится в Vercel env (<code>GEMINI_API_KEY</code>) и используется через бэкенд <code>/api/gemini</code>.
-                    Можно ввести свой ключ для локальной разработки.
+                    Ключ хранится в Vercel env (<code>NVIDIA_API_KEY</code>) и используется через бэкенд <code>/api/llm</code>.
+                    Можно ввести свой ключ ниже для локальной разработки.
                 </p>
                 <div class="flex gap-2">
                     <input type="password" id="api-key"
@@ -383,7 +383,7 @@
                     <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
                         <span class="text-lg">✍️</span> Шаблон текста
                     </h2>
-                    <p class="text-xs text-gray-500 mb-3">Тон и структура подписей, которые сгенерирует Gemini.</p>
+                    <p class="text-xs text-gray-500 mb-3">Тон и структура подписей, которые сгенерирует LLM.</p>
                     <div id="text-tpl-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </section>
             </div><!-- /TAB: Templates -->
@@ -458,8 +458,10 @@
 const CW = 1280;
 const CH = 720;
 const FADE_DUR = 0.6;
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models';
+// LLM is called only via the /api/llm backend proxy. The fallback path uses
+// the OpenAI-compatible NVIDIA NIM endpoint with the user-supplied key.
+const LLM_FALLBACK_MODEL = 'qwen/qwen3.5-122b-a10b';
+const LLM_FALLBACK_BASE  = 'https://integrate.api.nvidia.com/v1/chat/completions';
 
 // ============================================================
 // STATE
@@ -502,7 +504,7 @@ const downloadInfo = $('#download-info');
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('gemini_api_key');
+    const saved = localStorage.getItem('llm_api_key');
     if (saved) $('#api-key').value = saved;
 
     dropZone.addEventListener('click', () => fileInput.click());
@@ -632,7 +634,7 @@ async function applyApartmentToForm(apt) {
     }
     renderGrid();
     $('#prop-description-internal') && ($('#prop-description-internal').value = apt.description || '');
-    // Stash full description for Gemini
+    // Stash full description for the LLM caption prompt
     window.__dbDescription = apt.description || '';
 }
 
@@ -758,12 +760,12 @@ function showErr(m) { photoError.textContent = m; photoError.classList.remove('h
 function hideErr()  { photoError.classList.add('hidden'); }
 
 // ============================================================
-// GEMINI API (via /api/gemini backend; falls back to client key)
+// LLM API (via /api/llm backend; falls back to client key against NVIDIA NIM)
 // ============================================================
-async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9, system = null) {
+async function llmFetch(prompt, key, maxTokens = 800, temperature = 0.9, system = null) {
     // Try backend first
     try {
-        const resp = await fetch('/api/gemini', {
+        const resp = await fetch('/api/llm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt, system, maxOutputTokens: maxTokens, temperature })
@@ -774,7 +776,7 @@ async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9, syst
         }
         // 500 with missing key → fall through to client-side
         const errBody = await resp.json().catch(() => ({}));
-        if (resp.status === 500 && /GEMINI_API_KEY/.test(errBody.error || '')) {
+        if (resp.status === 500 && /API_KEY/.test(errBody.error || '')) {
             // backend not configured — fallback if user provided a client key
         } else {
             throw new Error(errBody?.error || `HTTP ${resp.status}`);
@@ -784,25 +786,35 @@ async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9, syst
         // network error — fall through to client call below
     }
 
-    if (!key) throw new Error('Gemini бэкенд не настроен и клиентский ключ не введён');
+    if (!key) throw new Error('LLM бэкенд не настроен и клиентский ключ не введён');
 
-    const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`;
-    const body = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature, maxOutputTokens: maxTokens }
-    };
-    if (system) body.systemInstruction = { parts: [{ text: system }] };
-    const resp = await fetch(url, {
+    // Direct call to NVIDIA NIM (OpenAI-compatible). Used only when backend is
+    // unavailable AND user provided their own key in the field above.
+    const messages = [];
+    if (system) messages.push({ role: 'system', content: system });
+    messages.push({ role: 'user', content: prompt });
+    const resp = await fetch(LLM_FALLBACK_BASE, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify(body)
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+            model: LLM_FALLBACK_MODEL,
+            messages,
+            temperature,
+            max_tokens: maxTokens,
+            top_p: 0.95,
+            stream: false,
+        }),
     });
     if (!resp.ok) {
         const e = await resp.json().catch(() => ({}));
-        throw new Error(e?.error?.message || `HTTP ${resp.status}`);
+        throw new Error(e?.error?.message || e?.detail || e?.title || `HTTP ${resp.status}`);
     }
     const data = await resp.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    return data?.choices?.[0]?.message?.content?.trim() || '';
 }
 
 async function testApiKey() {
@@ -812,9 +824,9 @@ async function testApiKey() {
     btn.disabled = true; btn.textContent = '...';
     st.textContent = 'Проверка...'; st.className='mt-2 text-xs text-gray-400'; st.classList.remove('hidden');
     try {
-        const out = await geminiFetch('Ответь одним словом: ок', key, 50, 0.2);
-        if (key) localStorage.setItem('gemini_api_key', key);
-        st.textContent = '✓ Gemini ответил: «' + (out || '...').slice(0, 30) + '»';
+        const out = await llmFetch('Ответь одним словом: ок', key, 50, 0.2);
+        if (key) localStorage.setItem('llm_api_key', key);
+        st.textContent = '✓ LLM ответил: «' + (out || '...').slice(0, 30) + '»';
         st.className='mt-2 text-xs text-green-400';
     } catch (e) {
         st.textContent = '✗ ' + e.message; st.className='mt-2 text-xs text-red-400';
@@ -887,9 +899,9 @@ ${propertyBlock}
 2. [подпись для слайда 2]
 ...`;
 
-    setProgress(5, 'Gemini генерирует все подписи разом…');
+    setProgress(5, 'LLM генерирует все подписи разом…');
 
-    const raw = await geminiFetch(prompt, key, 1200, 1.0);
+    const raw = await llmFetch(prompt, key, 1200, 1.0);
     let captions = parseNumberedList(raw);
 
     // pad or trim to exact count
@@ -923,7 +935,7 @@ ${list}
 2. [подпись]
 ...`;
 
-    const raw = await geminiFetch(prompt, key, 1200, 0.95);
+    const raw = await llmFetch(prompt, key, 1200, 0.95);
     const fixed = parseNumberedList(raw);
 
     if (fixed.length === captions.length) return fixed;
@@ -933,8 +945,9 @@ ${list}
 
 /* --- MAIN ENTRY --- */
 async function generateCaptions() {
+    // Key is optional on the client — backend env can hold it instead.
+    // llmFetch() throws a clear error if neither backend nor client key is available.
     const key = $('#api-key').value.trim();
-    if (!key) throw new Error('Не указан API ключ Gemini');
 
     const name     = $('#prop-name').value.trim();
     const price    = $('#prop-price').value.trim();
@@ -943,7 +956,7 @@ async function generateCaptions() {
     const features = $('#prop-features').value.trim();
 
     // STEP 1: batch generate
-    setProgress(3, 'Запрос к Gemini (batch)…');
+    setProgress(3, 'Запрос к LLM (batch)…');
     let captions = await generateBatchCaptions(key, name, price, area, district, features);
 
     setProgress(15, `Получено ${captions.length} подписей ✓`);
@@ -1283,7 +1296,7 @@ async function startGeneration() {
     if (errs.length) { alert(errs.join('\n')); return; }
 
     // API key requirement: only client-side if backend not available
-    // (we don't gate here — geminiFetch will throw a clear error if neither is set)
+    // (we don't gate here — llmFetch will throw a clear error if neither is set)
 
     isGenerating = true;
     genBtn.disabled = true;

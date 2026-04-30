@@ -1,7 +1,7 @@
 {
   "name": "reelestate-video-generator",
   "version": "1.0.0",
-  "description": "ReelEstate — apartment slideshow video generator with Gemini AI and DB integration",
+  "description": "ReelEstate — apartment slideshow video generator with NVIDIA NIM (Qwen) and DB integration",
   "private": true,
   "scripts": {
     "dev": "vercel dev",

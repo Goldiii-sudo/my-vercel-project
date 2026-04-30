@@ -8,12 +8,12 @@ const { URL } = require('node:url');
 const port = Number(process.argv[2]) || 3000;
 
 const apartments = require('../api/apartments');
-const gemini = require('../api/gemini');
+const llm = require('../api/llm');
 const templates = require('../api/templates');
 
 const ROUTES = {
   '/api/apartments': apartments,
-  '/api/gemini': gemini,
+  '/api/llm': llm,
   '/api/templates': templates,
 };
 
