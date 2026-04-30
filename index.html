@@ -138,6 +138,74 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; display: inline-block; }
+
+        .tab-nav {
+            display: flex;
+            gap: 6px;
+            background: rgba(17,24,39,0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(75,85,99,0.25);
+            border-radius: 14px;
+            padding: 6px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+        }
+        .tab-btn:hover { color: #e2e8f0; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(168,85,247,0.18));
+            color: #fff;
+            border-color: rgba(99,102,241,0.45);
+        }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .apt-card {
+            background: rgba(17,24,39,0.6);
+            border: 1px solid rgba(75,85,99,0.3);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .apt-card:hover {
+            border-color: rgba(99,102,241,0.6);
+            transform: translateY(-2px);
+        }
+        .apt-card.selected {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+        }
+        .apt-thumb {
+            width: 100%;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            background: #1f2937;
+        }
+
+        .tpl-card {
+            background: rgba(17,24,39,0.6);
+            border: 1px solid rgba(75,85,99,0.3);
+            border-radius: 14px;
+            padding: 14px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .tpl-card:hover { border-color: rgba(99,102,241,0.55); }
+        .tpl-card.selected {
+            border-color: #6366f1;
+            background: rgba(99,102,241,0.1);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.18);
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -160,19 +228,23 @@
 
         <main class="max-w-3xl mx-auto px-4 pb-16 space-y-6">
 
-            <!-- API Key -->
+            <!-- API Key / Backend status -->
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.05s">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-base font-semibold flex items-center gap-2">
-                        <span class="text-lg">🔑</span> API ключ Gemini
+                        <span class="text-lg">🔑</span> Gemini API
                     </h2>
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener"
                        class="text-indigo-400 hover:text-indigo-300 text-xs transition">Получить ключ →</a>
                 </div>
+                <p class="text-xs text-gray-500 mb-2">
+                    Ключ хранится в Vercel env (<code>GEMINI_API_KEY</code>) и используется через бэкенд <code>/api/gemini</code>.
+                    Можно ввести свой ключ для локальной разработки.
+                </p>
                 <div class="flex gap-2">
                     <input type="password" id="api-key"
                            class="flex-1 bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                           placeholder="AIzaSy...">
+                           placeholder="необязательно — оставьте пустым для использования бэкенда">
                     <button onclick="testApiKey()" id="test-api-btn"
                             class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700/50 rounded-xl text-sm font-medium transition whitespace-nowrap">
                         Проверить
@@ -180,6 +252,16 @@
                 </div>
                 <div id="api-status" class="mt-2 text-xs hidden"></div>
             </section>
+
+            <!-- Tabs -->
+            <nav class="tab-nav fade-in-up" style="animation-delay:0.07s">
+                <button class="tab-btn active" data-tab="manual">📸 Свои фото</button>
+                <button class="tab-btn" data-tab="db">🗄 Из базы</button>
+                <button class="tab-btn" data-tab="templates">🎨 Шаблоны</button>
+            </nav>
+
+            <!-- TAB: Manual upload -->
+            <div id="tab-manual" class="tab-pane active space-y-6">
 
             <!-- Photos -->
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.1s">
@@ -251,6 +333,61 @@
                        placeholder="+7 (999) 123-45-67 • Агентство «Недвижимость PRO»">
             </section>
 
+            </div><!-- /TAB: Manual -->
+
+            <!-- TAB: From DB -->
+            <div id="tab-db" class="tab-pane space-y-4">
+                <section class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-semibold flex items-center gap-2">
+                            <span class="text-lg">🗄</span> Квартиры из базы
+                        </h2>
+                        <span id="db-count" class="text-xs text-gray-500"></span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                        <input type="text" id="db-search"
+                               class="bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                               placeholder="Поиск: район, проект, ул...">
+                        <select id="db-rooms"
+                                class="bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white transition">
+                            <option value="">Все комнаты</option>
+                            <option value="1">1 (студия)</option>
+                            <option value="2">2-комн.</option>
+                            <option value="3">3-комн.</option>
+                            <option value="4">4-комн.</option>
+                        </select>
+                    </div>
+                    <div id="db-status" class="text-xs text-gray-500 mb-3">Загрузка...</div>
+                    <div id="db-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </section>
+                <section id="db-selected" class="glass-card rounded-2xl p-5 hidden">
+                    <h3 class="text-base font-semibold mb-2 flex items-center gap-2">
+                        <span class="text-lg">✓</span> Выбрано: <span id="db-selected-title" class="text-indigo-400"></span>
+                    </h3>
+                    <p id="db-selected-meta" class="text-xs text-gray-500 mb-3"></p>
+                    <div id="db-selected-thumbs" class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 mb-3"></div>
+                    <p class="text-xs text-gray-500">Поля «Данные объекта» автоматически заполнены. Готово к генерации.</p>
+                </section>
+            </div><!-- /TAB: DB -->
+
+            <!-- TAB: Templates -->
+            <div id="tab-templates" class="tab-pane space-y-4">
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">🎬</span> Шаблон видео
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">Стиль слайдов: длительность, переходы, оформление подписей.</p>
+                    <div id="video-tpl-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </section>
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">✍️</span> Шаблон текста
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">Тон и структура подписей, которые сгенерирует Gemini.</p>
+                    <div id="text-tpl-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </section>
+            </div><!-- /TAB: Templates -->
+
             <!-- Generate -->
             <div class="text-center pt-2 fade-in-up" style="animation-delay:0.25s">
                 <button id="generate-btn" onclick="startGeneration()"
@@ -320,7 +457,6 @@
 // ============================================================
 const CW = 1280;
 const CH = 720;
-const SLIDE_DUR = 3.0;
 const FADE_DUR = 0.6;
 const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -328,11 +464,19 @@ const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models';
 // ============================================================
 // STATE
 // ============================================================
-let photos = [];          // { file, img, objectURL }
+let photos = [];          // { file, img, objectURL, source: 'manual'|'db' }
 let captions = [];
 let videoBlob = null;
 let isGenerating = false;
 let slidesSnapshot = [];  // store last generated slides for preview replay
+let currentSlideDur = 3.0;// pulled from selected video template
+
+let apartmentsList = [];      // summaries from /api/apartments
+let selectedApartment = null; // full record
+let videoTemplates = [];
+let textTemplates = [];
+let selectedVideoTemplateId = 'premium';
+let selectedTextTemplateId = 'selling-premium';
 
 // ============================================================
 // DOM
@@ -366,7 +510,206 @@ document.addEventListener('DOMContentLoaded', () => {
     dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
     dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    $('#db-search').addEventListener('input', renderDbGrid);
+    $('#db-rooms').addEventListener('change', renderDbGrid);
+
+    loadApartments();
+    loadTemplates();
 });
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+}
+
+// ============================================================
+// APARTMENTS DATABASE
+// ============================================================
+async function loadApartments() {
+    const status = $('#db-status');
+    try {
+        const r = await fetch('/api/apartments');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        apartmentsList = data.items || [];
+        $('#db-count').textContent = `всего в базе: ${data.count}`;
+        status.classList.add('hidden');
+        renderDbGrid();
+    } catch (e) {
+        status.textContent = 'Ошибка загрузки базы: ' + e.message + ' (запустите проект через vercel dev / на Vercel)';
+        status.className = 'text-xs text-amber-400 mb-3';
+    }
+}
+
+function renderDbGrid() {
+    const grid = $('#db-grid');
+    const q = ($('#db-search').value || '').toLowerCase().trim();
+    const rooms = $('#db-rooms').value;
+    const filtered = apartmentsList.filter(a => {
+        if (rooms && String(a.rooms) !== rooms) return false;
+        if (!q) return true;
+        const hay = `${a.title || ''} ${a.address || ''} ${a.district || ''} ${a.project || ''}`.toLowerCase();
+        return hay.includes(q);
+    });
+    if (!filtered.length) {
+        grid.innerHTML = '<p class="col-span-full text-sm text-gray-500 text-center py-4">Ничего не найдено</p>';
+        return;
+    }
+    grid.innerHTML = filtered.map(a => {
+        const cover = (a.images && a.images[0]) || '';
+        const price = a.price ? `${a.price.toLocaleString('ru-RU')} ${a.currency || ''}` : 'Цена по запросу';
+        const sub = [a.rooms ? a.rooms + '-комн.' : null, a.area ? a.area + ' м²' : null, a.district].filter(Boolean).join(' • ');
+        const isSel = selectedApartment && selectedApartment.id === a.id;
+        return `<div class="apt-card ${isSel ? 'selected' : ''}" onclick="selectApartment(${a.id})">
+            ${cover ? `<img class="apt-thumb" src="${cover}" alt="" referrerpolicy="no-referrer" crossorigin="anonymous" loading="lazy">` : '<div class="apt-thumb flex items-center justify-center text-gray-700 text-xs">нет фото</div>'}
+            <div class="p-3">
+                <div class="text-sm font-semibold text-white line-clamp-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(a.title || '')}</div>
+                <div class="text-xs text-indigo-400 mt-1">${price}</div>
+                <div class="text-xs text-gray-500 mt-0.5">${escapeHtml(sub)}</div>
+                <div class="text-xs text-gray-600 mt-1">${a.image_count} фото</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function selectApartment(id) {
+    const status = $('#db-status');
+    status.textContent = 'Загрузка объекта...';
+    status.className = 'text-xs text-gray-400 mb-3';
+    status.classList.remove('hidden');
+    try {
+        const r = await fetch('/api/apartments?id=' + encodeURIComponent(id));
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const apt = await r.json();
+        selectedApartment = apt;
+        renderDbGrid();
+        await applyApartmentToForm(apt);
+        status.classList.add('hidden');
+    } catch (e) {
+        status.textContent = 'Ошибка: ' + e.message;
+        status.className = 'text-xs text-red-400 mb-3';
+    }
+}
+
+async function applyApartmentToForm(apt) {
+    // Fill property fields from DB record
+    $('#prop-name').value = (apt.title || '').replace(/\.$/, '').trim();
+    $('#prop-price').value = apt.price ? `${apt.price.toLocaleString('ru-RU')} ${apt.currency || ''}` : '';
+    $('#prop-area').value = apt.area ? `${apt.area} м²` : '';
+    $('#prop-district').value = [apt.district, apt.address].filter(Boolean).join(', ');
+    const features = [];
+    if (apt.rooms) features.push(`${apt.rooms}-комн.`);
+    if (apt.floor) features.push(`этаж ${apt.floor}`);
+    if (apt.project) features.push(apt.project);
+    if (apt.options && apt.options.length) features.push(...apt.options.slice(0, 3));
+    $('#prop-features').value = features.join(', ');
+
+    // Replace photos with DB images (load by URL into <img>)
+    photos.forEach(p => { if (p.objectURL) URL.revokeObjectURL(p.objectURL); });
+    photos = [];
+
+    const urls = (apt.images || []).slice(0, 20);
+    const sel = $('#db-selected');
+    const thumbs = $('#db-selected-thumbs');
+    sel.classList.remove('hidden');
+    $('#db-selected-title').textContent = apt.title || ('ID ' + apt.id);
+    $('#db-selected-meta').textContent = `${apt.district || ''} • ${urls.length} фото • ${apt.area || '?'} м²`;
+    thumbs.innerHTML = urls.map(u => `<img src="${u}" class="rounded-md aspect-square object-cover" referrerpolicy="no-referrer" loading="lazy">`).join('');
+
+    // Pre-load images for canvas use
+    for (const url of urls) {
+        try {
+            const img = await loadImgFromUrl(url);
+            photos.push({ file: null, img, objectURL: url, source: 'db' });
+        } catch (e) {
+            console.warn('Failed to load image from DB:', url, e);
+        }
+    }
+    renderGrid();
+    $('#prop-description-internal') && ($('#prop-description-internal').value = apt.description || '');
+    // Stash full description for Gemini
+    window.__dbDescription = apt.description || '';
+}
+
+function loadImgFromUrl(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.referrerPolicy = 'no-referrer';
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to load: ' + url));
+        img.src = url;
+    });
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// ============================================================
+// TEMPLATES
+// ============================================================
+async function loadTemplates() {
+    try {
+        const r = await fetch('/api/templates');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        videoTemplates = data.video || [];
+        textTemplates  = data.text  || [];
+    } catch (e) {
+        console.warn('Templates not available, using built-in defaults', e);
+        videoTemplates = BUILTIN_VIDEO_TEMPLATES;
+        textTemplates  = BUILTIN_TEXT_TEMPLATES;
+    }
+    renderTemplatePickers();
+}
+
+function renderTemplatePickers() {
+    const vg = $('#video-tpl-grid');
+    vg.innerHTML = videoTemplates.map(t => `
+        <div class="tpl-card ${t.id === selectedVideoTemplateId ? 'selected' : ''}" onclick="selectVideoTemplate('${t.id}')">
+            <div class="flex items-center justify-between mb-1">
+                <div class="text-sm font-semibold text-white">${escapeHtml(t.name)}</div>
+                <div class="w-3 h-3 rounded-full" style="background:${t.accentColor || '#6366f1'}"></div>
+            </div>
+            <p class="text-xs text-gray-500 mb-2">${escapeHtml(t.description || '')}</p>
+            <p class="text-xs text-gray-600">Кадр: ${t.secondsPerSlide}с • Переход: ${t.transition}</p>
+        </div>`).join('');
+    const tg = $('#text-tpl-grid');
+    tg.innerHTML = textTemplates.map(t => `
+        <div class="tpl-card ${t.id === selectedTextTemplateId ? 'selected' : ''}" onclick="selectTextTemplate('${t.id}')">
+            <div class="text-sm font-semibold text-white mb-1">${escapeHtml(t.name)}</div>
+            <p class="text-xs text-gray-500">${escapeHtml(t.description || '')}</p>
+        </div>`).join('');
+}
+
+function selectVideoTemplate(id) { selectedVideoTemplateId = id; renderTemplatePickers(); }
+function selectTextTemplate(id) { selectedTextTemplateId = id; renderTemplatePickers(); }
+
+function getSelectedVideoTemplate() {
+    return videoTemplates.find(t => t.id === selectedVideoTemplateId) || videoTemplates[0] || BUILTIN_VIDEO_TEMPLATES[0];
+}
+function getSelectedTextTemplate() {
+    return textTemplates.find(t => t.id === selectedTextTemplateId) || textTemplates[0] || BUILTIN_TEXT_TEMPLATES[0];
+}
+
+const BUILTIN_VIDEO_TEMPLATES = [{
+    id: 'premium', name: 'Премиум', description: 'Плавные длинные кадры',
+    secondsPerSlide: 3.0, transition: 'fade', transitionMs: 600, kenBurns: true,
+    captionStyle: { fontSize: 30, fontWeight: 600, color: '#fff', shadow: 'rgba(0,0,0,0.85)', background: '', padding: 0, position: 'bottom' },
+    accentColor: '#6366f1'
+}];
+const BUILTIN_TEXT_TEMPLATES = [{
+    id: 'selling-premium', name: 'Продающий', description: '',
+    system: 'Ты — копирайтер рекламы недвижимости. Пиши кратко и эмоционально.',
+    captionPrompt: 'Сгенерируй {n} подписей по квартире (по 5–8 слов). JSON-массив строк.\n\n{property}',
+    scriptPrompt: ''
+}];
 
 // ============================================================
 // PHOTO HANDLING
@@ -415,20 +758,44 @@ function showErr(m) { photoError.textContent = m; photoError.classList.remove('h
 function hideErr()  { photoError.classList.add('hidden'); }
 
 // ============================================================
-// GEMINI API
+// GEMINI API (via /api/gemini backend; falls back to client key)
 // ============================================================
-async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9) {
+async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9, system = null) {
+    // Try backend first
+    try {
+        const resp = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, system, maxOutputTokens: maxTokens, temperature })
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            return (data.text || '').trim();
+        }
+        // 500 with missing key → fall through to client-side
+        const errBody = await resp.json().catch(() => ({}));
+        if (resp.status === 500 && /GEMINI_API_KEY/.test(errBody.error || '')) {
+            // backend not configured — fallback if user provided a client key
+        } else {
+            throw new Error(errBody?.error || `HTTP ${resp.status}`);
+        }
+    } catch (e) {
+        if (!key) throw e; // no fallback possible
+        // network error — fall through to client call below
+    }
+
+    if (!key) throw new Error('Gemini бэкенд не настроен и клиентский ключ не введён');
+
     const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`;
+    const body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature, maxOutputTokens: maxTokens }
+    };
+    if (system) body.systemInstruction = { parts: [{ text: system }] };
     const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': key
-        },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature, maxOutputTokens: maxTokens }
-        })
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(body)
     });
     if (!resp.ok) {
         const e = await resp.json().catch(() => ({}));
@@ -442,13 +809,13 @@ async function testApiKey() {
     const key = $('#api-key').value.trim();
     const st = $('#api-status');
     const btn = $('#test-api-btn');
-    if (!key) { st.textContent = 'Введите API ключ'; st.className='mt-2 text-xs text-red-400'; st.classList.remove('hidden'); return; }
     btn.disabled = true; btn.textContent = '...';
     st.textContent = 'Проверка...'; st.className='mt-2 text-xs text-gray-400'; st.classList.remove('hidden');
     try {
-        await geminiFetch('Ответь одним словом: ок', key);
-        localStorage.setItem('gemini_api_key', key);
-        st.textContent = '✓ Ключ действителен'; st.className='mt-2 text-xs text-green-400';
+        const out = await geminiFetch('Ответь одним словом: ок', key, 50, 0.2);
+        if (key) localStorage.setItem('gemini_api_key', key);
+        st.textContent = '✓ Gemini ответил: «' + (out || '...').slice(0, 30) + '»';
+        st.className='mt-2 text-xs text-green-400';
     } catch (e) {
         st.textContent = '✗ ' + e.message; st.className='mt-2 text-xs text-red-400';
     }
@@ -473,15 +840,20 @@ function parseNumberedList(raw) {
 /* --- STEP 1: batch-generate all captions at once --- */
 async function generateBatchCaptions(key, name, price, area, district, features) {
     const n = photos.length;
+    const tpl = getSelectedTextTemplate();
+    const dbDescription = window.__dbDescription || '';
 
-    const prompt = `Ты — лучший копирайтер рекламы недвижимости в России. Пишешь для соцсетей и видео-презентаций.
-
-Объект: «${name}»
+    const propertyBlock = `Объект: «${name}»
 Цена: ${price}
 Площадь: ${area}
-Район: ${district}
-Преимущества: ${features}
-Количество фото: ${n}
+Район/адрес: ${district}
+Преимущества: ${features}${dbDescription ? '\n\nОписание из базы:\n' + dbDescription.slice(0, 1500) : ''}`;
+
+    const prompt = `${tpl.system || 'Ты — копирайтер рекламы недвижимости. Пиши кратко и эмоционально.'}
+
+Количество фото в видео: ${n}
+
+${propertyBlock}
 
 Задача: придумай ${n} подписей — по одной для каждого слайда видео-презентации.
 
@@ -706,18 +1078,40 @@ function renderTitleSlide(ctx, alpha) {
 function renderPhotoSlide(ctx, idx, alpha) {
     const photo   = photos[idx];
     const caption = captions[idx] || `Фото ${idx+1}`;
+    const tpl = getSelectedVideoTemplate();
+    const cs = tpl.captionStyle || {};
+    const fontSize = cs.fontSize || 30;
+    const fontWeight = cs.fontWeight || 600;
+    const fontColor = cs.color || '#fff';
+    const padding = cs.padding || 0;
+    const bg = cs.background || '';
+    const position = cs.position || 'bottom';
 
     ctx.save();
     ctx.globalAlpha = alpha;
     drawImageCover(ctx, photo.img, 0, 0, CW, CH);
-    drawBottomGrad(ctx, 200);
+    if (position !== 'center') drawBottomGrad(ctx, 220);
 
-    // Caption
-    ctx.font = '600 30px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, caption, CW/2, CH-85, CW-120, 38);
+    // Compute caption box
+    ctx.font = `${fontWeight} ${fontSize}px Inter, system-ui, sans-serif`;
+    const lines = wrapText(ctx, caption, CW - 160);
+    const lineH = Math.round(fontSize * 1.25);
+    const blockH = lines.length * lineH + padding * 2;
+    const cy = position === 'center' ? CH/2 : (CH - 60 - blockH/2);
+
+    if (bg) {
+        ctx.fillStyle = bg;
+        const w = CW - 80;
+        ctx.fillRect((CW - w)/2, cy - blockH/2, w, blockH);
+    }
+
+    ctx.shadowColor = cs.shadow || 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = fontColor;
+    drawCenteredText(ctx, caption, CW/2, cy, CW - 160, lineH);
 
     // Counter
+    ctx.shadowBlur = 0;
     ctx.textAlign = 'center';
     ctx.font = '400 15px Inter, system-ui, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
@@ -794,7 +1188,7 @@ function buildSlides() {
 // ============================================================
 function recordVideo(canvas, ctx, slides) {
     return new Promise((resolve, reject) => {
-        const totalDur = slides.length * SLIDE_DUR - (slides.length - 1) * FADE_DUR;
+        const totalDur = slides.length * currentSlideDur - (slides.length - 1) * FADE_DUR;
         const stream = canvas.captureStream(30);
 
         const mimes = [
@@ -824,8 +1218,8 @@ function recordVideo(canvas, ctx, slides) {
             ctx.clearRect(0,0,CW,CH);
 
             for (let i = 0; i < slides.length; i++) {
-                const sStart = i * (SLIDE_DUR - FADE_DUR);
-                const sEnd   = sStart + SLIDE_DUR;
+                const sStart = i * (currentSlideDur - FADE_DUR);
+                const sEnd   = sStart + currentSlideDur;
                 if (t >= sStart - 0.02 && t < sEnd + 0.02) {
                     let alpha = 1;
                     if (t < sStart + FADE_DUR) alpha = clamp01((t - sStart) / FADE_DUR);
@@ -886,8 +1280,10 @@ async function startGeneration() {
     if (photos.length > 20) errs.push('Максимум 20 фото');
     if (!$('#prop-name').value.trim())  errs.push('Укажите название');
     if (!$('#prop-price').value.trim()) errs.push('Укажите цену');
-    if (!$('#api-key').value.trim())    errs.push('Укажите API ключ Gemini');
     if (errs.length) { alert(errs.join('\n')); return; }
+
+    // API key requirement: only client-side if backend not available
+    // (we don't gate here — geminiFetch will throw a clear error if neither is set)
 
     isGenerating = true;
     genBtn.disabled = true;
@@ -897,6 +1293,10 @@ async function startGeneration() {
     videoBlob = null;
     resetSteps();
     progressSec.scrollIntoView({ behavior:'smooth', block:'center' });
+
+    // Apply selected video template
+    const tplV = getSelectedVideoTemplate();
+    currentSlideDur = (tplV && tplV.secondsPerSlide) ? tplV.secondsPerSlide : 3.0;
 
     try {
         // 1) Captions
@@ -962,14 +1362,14 @@ function setupPreview(slides) {
     pc.onclick = () => {
         if (playing) return;
         playing = true;
-        const dur = slides.length * SLIDE_DUR - (slides.length-1) * FADE_DUR;
+        const dur = slides.length * currentSlideDur - (slides.length-1) * FADE_DUR;
         const t0 = performance.now();
         function tick(now) {
             const t = (now - t0)/1000;
             if (t >= dur) { playing = false; slides[slides.length-1].render(pctx,1); return; }
             pctx.clearRect(0,0,CW,CH);
             for (let i=0;i<slides.length;i++) {
-                const s = i*(SLIDE_DUR-FADE_DUR), e = s+SLIDE_DUR;
+                const s = i*(currentSlideDur-FADE_DUR), e = s+currentSlideDur;
                 if (t >= s-0.02 && t < e+0.02) {
                     let a = 1;
                     if (t < s+FADE_DUR) a = clamp01((t-s)/FADE_DUR);

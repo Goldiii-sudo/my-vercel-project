@@ -1,4 +1,7 @@
 node_modules
 .git
 .env
+.env.local
 *.log
+scripts/dev-server.js
+scripts/export_db.py
