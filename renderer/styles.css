@@ -702,6 +702,11 @@ body {
   letter-spacing: 0.03em;
 }
 
+.proto-badge.tor {
+  background: rgba(128,0,255,0.12);
+  color: #8b5cf6;
+}
+
 /* ==================== EXCLUSIONS PAGE ==================== */
 .exclusion-section {
   margin-bottom: 20px;
