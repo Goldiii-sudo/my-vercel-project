@@ -5,3 +5,4 @@ node_modules
 *.log
 test-plan.md
 test-report.md
+.env*.local
