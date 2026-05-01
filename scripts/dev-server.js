@@ -25,6 +25,9 @@ const STATIC_TYPES = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
 };
 
 const server = http.createServer((req, res) => {

@@ -119,8 +119,37 @@
             overflow: hidden;
             background: #000;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            max-height: 70vh;
         }
-        .canvas-container canvas { width: 100%; display: block; }
+        .canvas-container canvas { max-width: 100%; max-height: 70vh; display: block; }
+
+        /* Aspect ratio + music chip pickers */
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border-radius: 9999px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            color: #cbd5e1; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.15s ease;
+            user-select: none;
+        }
+        .chip:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.4); color: #fff; }
+        .chip.active {
+            background: linear-gradient(135deg,#6366f1 0%,#a855f7 100%);
+            border-color: transparent; color: #fff;
+        }
+        .chip .chip-icon { font-size: 14px; }
+        .chip .chip-meta { font-size: 10px; opacity: 0.65; font-weight: 500; }
+
+        /* Audio preview button + active state for music chip */
+        .music-chip { padding-right: 8px; }
+        .music-chip .play-btn {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: rgba(0,0,0,0.35); display: inline-flex;
+            align-items: center; justify-content: center; font-size: 10px;
+            margin-left: 4px;
+        }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -234,12 +263,20 @@
         }
         .apt-card:hover .apt-thumb-wrap .gallery-trigger { opacity: 1; }
         .apt-thumb-wrap .gallery-trigger:hover { transform: scale(1.1); }
+        .apt-thumb-wrap .gallery-trigger:active { transform: scale(0.92); }
         .apt-thumb-wrap .photo-count-pill {
             position: absolute; top: 8px; left: 8px;
             padding: 3px 8px; border-radius: 9999px;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
             color: white; font-size: 11px; font-weight: 600;
             border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        /* Touch / coarse-pointer devices: hover doesn't fire, so always show
+           the gallery trigger and the preview strip. Bigger tap targets too. */
+        @media (hover: none) and (pointer: coarse) {
+            .apt-thumb-wrap .gallery-trigger { opacity: 1; width: 42px; height: 42px; font-size: 16px; }
+            .apt-thumb-wrap .preview-strip { transform: translateY(0); }
         }
 
         /* Fullscreen gallery lightbox */
@@ -267,6 +304,7 @@
             display: flex; flex-direction: column;
             width: 100%; height: 100%;
             padding: 2rem 1rem 1rem;
+            touch-action: pan-y;
         }
         .gallery-overlay .gal-header {
             display: flex; align-items: center; justify-content: space-between;
@@ -519,6 +557,21 @@
             <div id="tab-templates" class="tab-pane space-y-4">
                 <section class="glass-card rounded-2xl p-5">
                     <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">📐</span> Формат видео
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">YouTube — 16:9, Reels/TikTok/Shorts — 9:16, Instagram-фид — 1:1 / 4:5.</p>
+                    <div id="aspect-chips" class="chip-row"></div>
+                </section>
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">🎵</span> Музыка
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">Royalty-free, можно слушать перед выбором. «Без музыки» — оставит видео тихим.</p>
+                    <div id="music-chips" class="chip-row"></div>
+                    <audio id="music-preview" preload="none" style="display:none"></audio>
+                </section>
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
                         <span class="text-lg">🎬</span> Шаблон видео
                     </h2>
                     <p class="text-xs text-gray-500 mb-3">Стиль слайдов: длительность, переходы, оформление подписей.</p>
@@ -604,7 +657,7 @@
             <button class="gal-close" type="button" aria-label="Закрыть" onclick="closeGallery()">✕</button>
             <div class="gal-header">
                 <div class="gal-title" id="gal-title"></div>
-                <div class="gal-counter" id="gal-counter">0 / 0</div>
+                <div class="gal-counter" id="gal-counter" aria-live="polite" aria-atomic="true">0 / 0</div>
             </div>
             <div class="gal-stage">
                 <button class="gal-nav prev" type="button" aria-label="Предыдущее" onclick="galleryPrev()">‹</button>
@@ -619,8 +672,9 @@
 // ============================================================
 // CONSTANTS
 // ============================================================
-const CW = 1280;
-const CH = 720;
+// Output canvas size — mutable, driven by the chosen aspect ratio chip.
+let CW = 1280;
+let CH = 720;
 const FADE_DUR = 0.6;
 // Recording: 60fps capture and a generous bitrate keeps motion (Ken Burns +
 // transitions) sharp instead of looking like a slideshow on dial-up.
@@ -630,6 +684,23 @@ const RECORD_BITRATE = 12_000_000;
 // the OpenAI-compatible NVIDIA NIM endpoint with the user-supplied key.
 const LLM_FALLBACK_MODEL = 'qwen/qwen3.5-122b-a10b';
 const LLM_FALLBACK_BASE  = 'https://integrate.api.nvidia.com/v1/chat/completions';
+
+// Output formats — width/height chosen to match real social-media specs.
+const ASPECT_RATIOS = [
+    { id: '16:9', label: '16:9', icon: '🖥', meta: 'YouTube',         w: 1280, h: 720  },
+    { id: '9:16', label: '9:16', icon: '📱', meta: 'Reels / TikTok',  w: 720,  h: 1280 },
+    { id: '1:1',  label: '1:1',  icon: '⬛', meta: 'IG feed',         w: 1080, h: 1080 },
+    { id: '4:5',  label: '4:5',  icon: '🟦', meta: 'IG portrait',     w: 1080, h: 1350 },
+];
+let selectedAspectId = '16:9';
+// Font scale derived from canvas size — keeps text readable when the
+// canvas is taller (vertical) or smaller (square) than the original 16:9.
+function fontScale() { return Math.min(CW, CH) / 720; }
+
+// Background music — fetched from /music/tracks.json at boot.
+let musicTracks = [];
+let selectedMusicId = '';   // '' = no music
+let _musicPreviewId = '';   // track currently being previewed
 
 // ============================================================
 // STATE
@@ -690,6 +761,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadApartments();
     loadTemplates();
+    loadMusicTracks();
+    // Initialise canvas size + chip selection.
+    setAspectRatio(selectedAspectId);
 });
 
 function switchTab(tab) {
@@ -801,6 +875,8 @@ async function openGalleryForApt(id) {
     openGallery(apt.images, apt.title || ('ID ' + apt.id), 0);
 }
 
+let _galleryPrevFocus = null;
+
 function openGallery(urls, title, startIdx) {
     galleryState.urls = urls.slice();
     galleryState.idx = Math.max(0, Math.min(startIdx | 0, urls.length - 1));
@@ -812,6 +888,20 @@ function openGallery(urls, title, startIdx) {
     renderGalleryStrip();
     showGalleryAt(galleryState.idx);
     document.addEventListener('keydown', galleryKeyHandler);
+
+    // Touch/swipe — register on the stage (not the whole overlay) so
+    // tapping a thumbnail or close button still works as a normal click.
+    const stage = overlay.querySelector('.gal-stage');
+    if (stage) {
+        stage.addEventListener('touchstart', galleryTouchStart, { passive: true });
+        stage.addEventListener('touchend',   galleryTouchEnd,   { passive: true });
+    }
+
+    // Focus trap: remember who had focus, move focus into the modal,
+    // and trap Tab inside it until close.
+    _galleryPrevFocus = document.activeElement;
+    const closeBtn = overlay.querySelector('.gal-close');
+    if (closeBtn) closeBtn.focus();
 }
 
 function closeGallery() {
@@ -819,6 +909,34 @@ function closeGallery() {
     overlay.classList.remove('active');
     document.documentElement.style.overflow = '';
     document.removeEventListener('keydown', galleryKeyHandler);
+    const stage = overlay.querySelector('.gal-stage');
+    if (stage) {
+        stage.removeEventListener('touchstart', galleryTouchStart);
+        stage.removeEventListener('touchend',   galleryTouchEnd);
+    }
+    if (_galleryPrevFocus && typeof _galleryPrevFocus.focus === 'function') {
+        try { _galleryPrevFocus.focus(); } catch (_) {}
+    }
+    _galleryPrevFocus = null;
+}
+
+let _touchStartX = 0, _touchStartY = 0, _touchStartT = 0;
+function galleryTouchStart(e) {
+    if (!e.touches || !e.touches.length) return;
+    _touchStartX = e.touches[0].clientX;
+    _touchStartY = e.touches[0].clientY;
+    _touchStartT = performance.now();
+}
+function galleryTouchEnd(e) {
+    if (!e.changedTouches || !e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - _touchStartX;
+    const dy = e.changedTouches[0].clientY - _touchStartY;
+    const dt = performance.now() - _touchStartT;
+    // Only treat as a swipe if mostly horizontal, fast enough, and far enough.
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 700) {
+        if (dx < 0) galleryNext();
+        else        galleryPrev();
+    }
 }
 
 function onGalleryBackdropClick(ev) {
@@ -829,9 +947,23 @@ function onGalleryBackdropClick(ev) {
 }
 
 function galleryKeyHandler(e) {
-    if (e.key === 'Escape') closeGallery();
-    else if (e.key === 'ArrowRight') galleryNext();
-    else if (e.key === 'ArrowLeft') galleryPrev();
+    if (e.key === 'Escape') { closeGallery(); return; }
+    if (e.key === 'ArrowRight') { galleryNext(); return; }
+    if (e.key === 'ArrowLeft')  { galleryPrev(); return; }
+    if (e.key === 'Tab') {
+        // Trap focus inside the gallery modal.
+        const overlay = $('#gallery-overlay');
+        if (!overlay) return;
+        const focusables = overlay.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last  = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault(); first.focus();
+        }
+    }
 }
 
 function galleryNext() { showGalleryAt((galleryState.idx + 1) % galleryState.urls.length); }
@@ -947,7 +1079,97 @@ async function loadTemplates() {
     renderTemplatePickers();
 }
 
+function renderAspectChips() {
+    const el = $('#aspect-chips');
+    if (!el) return;
+    el.innerHTML = ASPECT_RATIOS.map(a => `
+        <div class="chip ${a.id === selectedAspectId ? 'active' : ''}" onclick="setAspectRatio('${a.id}')">
+            <span class="chip-icon">${a.icon}</span>
+            <span>${a.label}</span>
+            <span class="chip-meta">${a.meta} · ${a.w}×${a.h}</span>
+        </div>`).join('');
+}
+
+function setAspectRatio(id) {
+    const a = ASPECT_RATIOS.find(x => x.id === id);
+    if (!a) return;
+    selectedAspectId = id;
+    CW = a.w; CH = a.h;
+    if (previewCanvas) {
+        previewCanvas.width = CW;
+        previewCanvas.height = CH;
+        // Force the container to use the new aspect for proper letterboxing.
+        previewCanvas.style.aspectRatio = `${a.w}/${a.h}`;
+    }
+    // Baked covers were sized for the previous aspect — invalidate them.
+    for (const p of photos) p.cover = null;
+    renderAspectChips();
+}
+
+async function loadMusicTracks() {
+    try {
+        const r = await fetch('/music/tracks.json');
+        musicTracks = r.ok ? await r.json() : [];
+    } catch (_) { musicTracks = []; }
+    renderMusicChips();
+}
+
+function renderMusicChips() {
+    const el = $('#music-chips');
+    if (!el) return;
+    const noMusic = `
+        <div class="chip ${selectedMusicId === '' ? 'active' : ''}" onclick="selectMusic('')">
+            <span class="chip-icon">🔇</span>
+            <span>Без музыки</span>
+        </div>`;
+    const tracks = musicTracks.map(t => `
+        <div class="chip music-chip ${t.id === selectedMusicId ? 'active' : ''}" onclick="selectMusic('${t.id}')">
+            <span class="chip-icon">🎵</span>
+            <span>${escapeHtml(t.name)}</span>
+            <span class="chip-meta">${escapeHtml(t.description || '')}</span>
+            <span class="play-btn" onclick="event.stopPropagation(); previewMusic('${t.id}')" title="Прослушать">
+                ${_musicPreviewId === t.id ? '⏸' : '▶'}
+            </span>
+        </div>`).join('');
+    el.innerHTML = noMusic + tracks;
+}
+
+function selectMusic(id) {
+    selectedMusicId = id;
+    stopMusicPreview();
+    renderMusicChips();
+}
+
+function previewMusic(id) {
+    const audio = $('#music-preview');
+    const t = musicTracks.find(x => x.id === id);
+    if (!audio || !t) return;
+    if (_musicPreviewId === id) {
+        stopMusicPreview();
+        return;
+    }
+    audio.src = t.url;
+    audio.volume = 0.65;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+    _musicPreviewId = id;
+    audio.onended = () => { _musicPreviewId = ''; renderMusicChips(); };
+    renderMusicChips();
+}
+
+function stopMusicPreview() {
+    const audio = $('#music-preview');
+    if (audio) { try { audio.pause(); } catch(_){} audio.src = ''; }
+    _musicPreviewId = '';
+}
+
+function getSelectedMusic() {
+    return musicTracks.find(t => t.id === selectedMusicId) || null;
+}
+
 function renderTemplatePickers() {
+    renderAspectChips();
+    renderMusicChips();
     const vg = $('#video-tpl-grid');
     vg.innerHTML = videoTemplates.map(t => `
         <div class="tpl-card ${t.id === selectedVideoTemplateId ? 'selected' : ''}" onclick="selectVideoTemplate('${t.id}')">
@@ -1388,29 +1610,31 @@ function renderTitleSlide(ctx, state) {
     }
 
     ctx.textAlign = 'center';
+    const s = fontScale();
+    const px = (n) => Math.round(n * s);
 
     // Decorative accent
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-40, CH/2-145, 80, 4);
+    ctx.fillRect(CW/2 - px(40), CH/2 - px(145), px(80), Math.max(3, px(4)));
 
     // Name
-    ctx.font = 'bold 52px Inter, system-ui, sans-serif';
+    ctx.font = `bold ${px(52)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, name, CW/2, CH/2 - 55, CW-140, 60);
+    drawCenteredText(ctx, name, CW/2, CH/2 - px(55), CW - px(140), px(60));
 
     // Price
     if (price) {
-        ctx.font = '700 42px Inter, system-ui, sans-serif';
+        ctx.font = `700 ${px(42)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2 + 25, CW-140, 48);
+        drawCenteredText(ctx, price, CW/2, CH/2 + px(25), CW - px(140), px(48));
     }
 
     // Subline
     const sub = [area, dist].filter(Boolean).join(' • ');
     if (sub) {
-        ctx.font = '400 20px Inter, system-ui, sans-serif';
+        ctx.font = `400 ${px(20)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#94a3b8';
-        drawCenteredText(ctx, sub, CW/2, CH/2 + 90, CW-140, 28);
+        drawCenteredText(ctx, sub, CW/2, CH/2 + px(90), CW - px(140), px(28));
     }
 
     ctx.restore();
@@ -1422,10 +1646,11 @@ function renderPhotoSlide(ctx, idx, state) {
     const caption = captions[idx] || `Фото ${idx+1}`;
     const tpl = getSelectedVideoTemplate();
     const cs = tpl.captionStyle || {};
-    const fontSize = cs.fontSize || 30;
+    const s = fontScale();
+    const fontSize = Math.round((cs.fontSize || 30) * s);
     const fontWeight = cs.fontWeight || 600;
     const fontColor = cs.color || '#fff';
-    const padding = cs.padding || 0;
+    const padding = Math.round((cs.padding || 0) * s);
     const bg = cs.background || '';
     const position = cs.position || 'bottom';
 
@@ -1442,30 +1667,32 @@ function renderPhotoSlide(ctx, idx, state) {
     else drawImageCover(ctx, photo.img, 0, 0, CW, CH);
     ctx.restore();
 
-    if (position !== 'center') drawBottomGrad(ctx, 220);
+    const sidePad = Math.round(80 * s);          // outer side padding
+    const captionMaxW = CW - sidePad * 2;
+    if (position !== 'center') drawBottomGrad(ctx, Math.round(220 * s));
 
     // Compute caption box
     ctx.font = `${fontWeight} ${fontSize}px Inter, system-ui, sans-serif`;
-    const lines = wrapText(ctx, caption, CW - 160);
+    const lines = wrapText(ctx, caption, captionMaxW);
     const lineH = Math.round(fontSize * 1.25);
     const blockH = lines.length * lineH + padding * 2;
-    const cy = position === 'center' ? CH/2 : (CH - 60 - blockH/2);
+    const cy = position === 'center' ? CH/2 : (CH - Math.round(60 * s) - blockH/2);
 
     if (bg) {
         ctx.fillStyle = bg;
-        const w = CW - 80;
+        const w = CW - Math.round(40 * s) * 2;
         ctx.fillRect((CW - w)/2, cy - blockH/2, w, blockH);
     }
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    drawTextWithStroke(ctx, caption, CW/2, cy, CW - 160, lineH, fontColor);
+    drawTextWithStroke(ctx, caption, CW/2, cy, captionMaxW, lineH, fontColor);
 
     // Counter
     ctx.textAlign = 'center';
-    ctx.font = '400 15px Inter, system-ui, sans-serif';
+    ctx.font = `400 ${Math.round(15 * s)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH-28);
+    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH - Math.round(28 * s));
 
     ctx.restore();
 }
@@ -1494,31 +1721,33 @@ function renderContactSlide(ctx, state) {
     }
 
     ctx.textAlign = 'center';
+    const cs = fontScale();
+    const cpx = (n) => Math.round(n * cs);
 
-    ctx.font = 'bold 44px Inter, system-ui, sans-serif';
+    ctx.font = `bold ${cpx(44)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2-100, CW-140, 52);
+    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2 - cpx(100), CW - cpx(140), cpx(52));
 
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-30, CH/2-60, 60, 3);
+    ctx.fillRect(CW/2 - cpx(30), CH/2 - cpx(60), cpx(60), Math.max(2, cpx(3)));
 
     if (name) {
-        ctx.font = '500 22px Inter, system-ui, sans-serif';
+        ctx.font = `500 ${cpx(22)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#c7d2fe';
-        drawCenteredText(ctx, name, CW/2, CH/2-15, CW-140, 30);
+        drawCenteredText(ctx, name, CW/2, CH/2 - cpx(15), CW - cpx(140), cpx(30));
     }
     if (price) {
-        ctx.font = '700 28px Inter, system-ui, sans-serif';
+        ctx.font = `700 ${cpx(28)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2+30, CW-140, 34);
+        drawCenteredText(ctx, price, CW/2, CH/2 + cpx(30), CW - cpx(140), cpx(34));
     }
 
     // Contact lines
-    ctx.font = '500 20px Inter, system-ui, sans-serif';
+    ctx.font = `500 ${cpx(20)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#e2e8f0';
     const lines = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
     lines.forEach((l,i) => {
-        drawCenteredText(ctx, l, CW/2, CH/2+95+i*34, CW-140, 28);
+        drawCenteredText(ctx, l, CW/2, CH/2 + cpx(95) + i * cpx(34), CW - cpx(140), cpx(28));
     });
 
     ctx.restore();
@@ -1537,7 +1766,9 @@ function makeKenBurns(i, enabled) {
     const zoomIn = i % 2 === 0;           // alternate zoom-in / zoom-out
     const zoomFrom = zoomIn ? 1.0  : 1.08;
     const zoomTo   = zoomIn ? 1.08 : 1.0;
-    const pan = 28;                       // px, gentle drift
+    // Pan magnitude tracks canvas size so the drift looks the same at
+    // 720p horizontal vs 1280p vertical.
+    const pan = Math.round(28 * Math.min(CW, CH) / 720);
     const dx = (dir === 0 ? -pan : dir === 1 ? pan : 0);
     const dy = (dir === 2 ? -pan : dir === 3 ? pan : 0);
     return {
@@ -1762,7 +1993,9 @@ async function recordVideo(canvas, ctx, slides) {
 // ============================================================
 // MP4 CONVERSION (FFmpeg.wasm — optional)
 // ============================================================
-async function convertToMP4(webmBlob) {
+async function convertToMP4(webmBlob, opts) {
+    opts = opts || {};
+    const musicTrack = opts.musicTrack || null;   // { url, ... } or null
     if (typeof SharedArrayBuffer === 'undefined') {
         setProgress(92, 'SharedArrayBuffer недоступен → сохраняем WebM');
         await delay(1200);
@@ -1780,12 +2013,44 @@ async function convertToMP4(webmBlob) {
             coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
             wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm'
         });
-        setProgress(93, 'Конвертация WebM → MP4…');
         await ffmpeg.writeFile('in.webm', await fetchFile(webmBlob));
-        await ffmpeg.exec(['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
+
+        let args;
+        if (musicTrack && musicTrack.url) {
+            try {
+                setProgress(92, 'Загрузка музыки…');
+                const audioData = await fetchFile(musicTrack.url);
+                await ffmpeg.writeFile('music.mp3', audioData);
+                setProgress(93, 'Конвертация WebM → MP4 + музыка…');
+                // -shortest cuts the music when video ends.
+                // afade out the last 1.5s for a smooth tail.
+                // -stream_loop -1 lets the music repeat if the video is longer
+                // than the track. -shortest then trims to video length.
+                args = [
+                    '-i', 'in.webm',
+                    '-stream_loop', '-1', '-i', 'music.mp3',
+                    '-map', '0:v:0', '-map', '1:a:0',
+                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                    '-pix_fmt', 'yuv420p',
+                    '-c:a', 'aac', '-b:a', '160k',
+                    '-af', 'volume=0.55',
+                    '-shortest',
+                    '-movflags', '+faststart',
+                    'out.mp4'
+                ];
+            } catch (e) {
+                console.warn('Music load failed, encoding without audio:', e);
+                args = ['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4'];
+            }
+        } else {
+            setProgress(93, 'Конвертация WebM → MP4…');
+            args = ['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4'];
+        }
+        await ffmpeg.exec(args);
         const data = await ffmpeg.readFile('out.mp4');
-        await ffmpeg.deleteFile('in.webm');
-        await ffmpeg.deleteFile('out.mp4');
+        try { await ffmpeg.deleteFile('in.webm'); } catch(_){}
+        try { await ffmpeg.deleteFile('music.mp3'); } catch(_){}
+        try { await ffmpeg.deleteFile('out.mp4'); } catch(_){}
         return new Blob([data.buffer], { type:'video/mp4' });
     } catch (e) {
         console.warn('FFmpeg failed:', e);
@@ -1852,7 +2117,7 @@ async function startGeneration() {
         // 4) MP4
         setActive(4);
         setProgress(90, 'Конвертация…');
-        const mp4 = await convertToMP4(videoBlob);
+        const mp4 = await convertToMP4(videoBlob, { musicTrack: getSelectedMusic() });
         if (mp4) videoBlob = mp4;
         setDone(4);
 
