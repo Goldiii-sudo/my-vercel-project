@@ -1,54 +1,53 @@
-# ReelEstate — Генератор видео-слайдшоу недвижимости
+# VesVG - VPN Client
 
-Веб-приложение для создания видео-презентаций объектов недвижимости с использованием AI.
+Beautiful VPN client application for Windows built with Electron.
 
-## 🚀 Деплой
+## Features
 
-Проект успешно задеплоен на Vercel:
+- Modern, clean interface inspired by premium VPN clients
+- Server list with 30+ servers worldwide, sorted by ping
+- Country flags and ping indicators
+- Connection status with animated character (Minecraft skin: loldog1)
+- Multiple pages: Home, Exclusions, Statistics, Support, Settings
+- Search and filter servers
+- Bookmark favorite servers
+- Kill Switch, DNS Leak Protection settings
+- Protocol selection (OpenVPN, WireGuard, IKEv2)
+- Beautiful animations and transitions
 
-- **Production URL**: https://reelestate-video-generator.vercel.app
-- **Inspect URL**: https://vercel.com/goldiii-sudos-projects/reelestate-video-generator
+## Screenshots
 
-## 📋 Возможности
+The app features a split-panel design with:
+- Left panel: Scenic background with Minecraft character, connection status
+- Right panel: Searchable server list with ping indicators
 
-- Загрузка 5-20 фотографий объекта недвижимости
-- Автоматическая генерация подписей с помощью Gemini AI
-- Создание видео-слайдшоу прямо в браузере
-- Экспорт готового видео в формате MP4
-
-## 🛠 Технологии
-
-- HTML5 Canvas для рендеринга
-- MediaRecorder API для записи видео
-- Gemini AI для генерации текстов
-- Tailwind CSS для стилизации
-
-## 📦 Локальная разработка
-
-Просто откройте `index.html` в браузере - никаких зависимостей не требуется!
-
-## 🔑 Настройка
-
-Для работы приложения необходим API ключ Gemini:
-1. Получите ключ на https://aistudio.google.com/app/apikey
-2. Введите его в соответствующее поле в приложении
-
-## 📝 Конфигурация Vercel
-
-Проект использует следующие файлы конфигурации:
-- `vercel.json` - настройки деплоя
-- `.vercelignore` - исключения из деплоя
-
-## 🔄 Повторный деплой
-
-Для обновления проекта на Vercel выполните:
+## Development
 
 ```bash
-vercel --prod
+# Install dependencies
+npm install
+
+# Run the app
+npm start
 ```
 
-Или для деплоя в preview-режиме:
+## Build for Windows
 
 ```bash
-vercel
+# Build Windows installer (.exe)
+npm run build
 ```
+
+## Tech Stack
+
+- **Electron** - Desktop application framework
+- **HTML/CSS/JS** - UI layer
+- **electron-builder** - Packaging and distribution
+
+## Logo
+
+The logo features the Minecraft player skin of "loldog1", rendered using mc-heads.net API.
+
+## License
+
+MIT

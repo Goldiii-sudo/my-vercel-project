@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VesVG</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Title Bar -->
+    <div class="titlebar" id="titlebar">
+      <div class="titlebar-left">
+        <div class="logo">
+          <img src="../assets/head.png" alt="VesVG" class="logo-img">
+        </div>
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-page="home">Главная</button>
+          <button class="nav-tab" data-page="exclusions">Исключения</button>
+          <button class="nav-tab" data-page="stats">Статистика</button>
+          <button class="nav-tab" data-page="support">Поддержка</button>
+          <button class="nav-tab" data-page="settings">Настройки</button>
+        </nav>
+        <button class="update-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Обновить
+        </button>
+      </div>
+      <div class="titlebar-controls">
+        <button class="control-btn minimize" onclick="window.electronAPI?.minimizeWindow()">
+          <svg width="12" height="2" viewBox="0 0 12 2"><rect width="12" height="2" fill="currentColor"/></svg>
+        </button>
+        <button class="control-btn close" onclick="window.electronAPI?.closeWindow()">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Page: Home -->
+    <div class="page active" id="page-home">
+      <div class="home-layout">
+        <!-- Left Panel -->
+        <div class="left-panel">
+          <div class="scene">
+            <div class="scene-bg">
+              <div class="sun"></div>
+              <div class="clouds">
+                <div class="cloud cloud-1"></div>
+                <div class="cloud cloud-2"></div>
+              </div>
+              <div class="hills">
+                <div class="hill hill-1"></div>
+                <div class="hill hill-2"></div>
+                <div class="hill hill-3"></div>
+              </div>
+              <div class="bushes">
+                <div class="bush bush-1"></div>
+                <div class="bush bush-2"></div>
+                <div class="bush bush-3"></div>
+                <div class="bush bush-4"></div>
+              </div>
+              <div class="character">
+                <img src="../assets/body.png" alt="VesVG Character" class="character-img">
+              </div>
+              <div class="grass"></div>
+            </div>
+          </div>
+          <div class="connection-status">
+            <p class="status-text" id="status-text">Отключён</p>
+            <button class="connect-btn" id="connect-btn">Подключить</button>
+          </div>
+          <div class="current-server" id="current-server">
+            <div class="current-server-info">
+              <span class="flag-emoji" id="current-flag">🇺🇦</span>
+              <div class="current-server-details">
+                <span class="current-country" id="current-country">Украина</span>
+                <span class="current-city" id="current-city">Киев</span>
+              </div>
+            </div>
+            <span class="current-ping" id="current-ping">15 мс</span>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+          <div class="search-bar">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" placeholder="Поиск" id="search-input">
+          </div>
+          <div class="server-tabs">
+            <button class="server-tab active" data-filter="all">Все</button>
+            <button class="server-tab" data-filter="saved">Сохранённые</button>
+          </div>
+          <div class="server-list" id="server-list">
+            <!-- Servers will be populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Exclusions -->
+    <div class="page" id="page-exclusions">
+      <div class="page-content">
+        <h2>Исключения</h2>
+        <p class="page-description">Управляйте приложениями и сайтами, которые не будут использовать VPN</p>
+        <div class="exclusion-section">
+          <div class="section-header">
+            <h3>Приложения</h3>
+            <button class="add-btn">+ Добавить</button>
+          </div>
+          <div class="exclusion-list" id="app-exclusions">
+            <div class="exclusion-item">
+              <div class="exclusion-info">
+                <span class="exclusion-icon">🌐</span>
+                <span>Google Chrome</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="exclusion-item">
+              <div class="exclusion-info">
+                <span class="exclusion-icon">💬</span>
+                <span>Discord</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="exclusion-item">
+              <div class="exclusion-info">
+                <span class="exclusion-icon">🎮</span>
+                <span>Steam</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="exclusion-section">
+          <div class="section-header">
+            <h3>Веб-сайты</h3>
+            <button class="add-btn">+ Добавить</button>
+          </div>
+          <div class="exclusion-list" id="site-exclusions">
+            <div class="exclusion-item">
+              <div class="exclusion-info">
+                <span class="exclusion-icon">📺</span>
+                <span>youtube.com</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Statistics -->
+    <div class="page" id="page-stats">
+      <div class="page-content">
+        <h2>Статистика</h2>
+        <p class="page-description">Статистика использования VPN за текущую сессию</p>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">⏱</div>
+            <div class="stat-value" id="stat-time">00:00:00</div>
+            <div class="stat-label">Время подключения</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📥</div>
+            <div class="stat-value" id="stat-download">0 MB</div>
+            <div class="stat-label">Загружено</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📤</div>
+            <div class="stat-value" id="stat-upload">0 MB</div>
+            <div class="stat-label">Выгружено</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔄</div>
+            <div class="stat-value" id="stat-sessions">3</div>
+            <div class="stat-label">Сессии сегодня</div>
+          </div>
+        </div>
+        <div class="chart-placeholder">
+          <h3>Использование трафика</h3>
+          <div class="chart-bars">
+            <div class="chart-bar-group">
+              <div class="chart-bar" style="height: 40%"></div>
+              <span>Пн</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar" style="height: 65%"></div>
+              <span>Вт</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar" style="height: 80%"></div>
+              <span>Ср</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar" style="height: 55%"></div>
+              <span>Чт</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar" style="height: 90%"></div>
+              <span>Пт</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar" style="height: 70%"></div>
+              <span>Сб</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar" style="height: 45%"></div>
+              <span>Вс</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Support -->
+    <div class="page" id="page-support">
+      <div class="page-content">
+        <h2>Поддержка</h2>
+        <p class="page-description">Нужна помощь? Мы всегда готовы помочь!</p>
+        <div class="support-cards">
+          <div class="support-card">
+            <div class="support-icon">📖</div>
+            <h3>База знаний</h3>
+            <p>Ответы на часто задаваемые вопросы</p>
+            <button class="support-btn">Открыть</button>
+          </div>
+          <div class="support-card">
+            <div class="support-icon">💬</div>
+            <h3>Чат поддержки</h3>
+            <p>Напишите нам в реальном времени</p>
+            <button class="support-btn">Начать чат</button>
+          </div>
+          <div class="support-card">
+            <div class="support-icon">📧</div>
+            <h3>Email</h3>
+            <p>support@vesvg.com</p>
+            <button class="support-btn">Написать</button>
+          </div>
+          <div class="support-card">
+            <div class="support-icon">🐛</div>
+            <h3>Сообщить об ошибке</h3>
+            <p>Помогите нам стать лучше</p>
+            <button class="support-btn">Отправить</button>
+          </div>
+        </div>
+        <div class="faq-section">
+          <h3>Часто задаваемые вопросы</h3>
+          <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+              <span>Как подключиться к VPN?</span>
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-answer">Выберите сервер из списка на главной странице и нажмите кнопку "Подключить".</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+              <span>Почему соединение медленное?</span>
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-answer">Попробуйте выбрать сервер с наименьшим пингом или сервер, расположенный ближе к вам географически.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+              <span>Мои данные защищены?</span>
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-answer">Да, VesVG использует шифрование AES-256 для защиты всего вашего трафика.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Settings -->
+    <div class="page" id="page-settings">
+      <div class="page-content">
+        <h2>Настройки</h2>
+        <p class="page-description">Настройте VesVG под себя</p>
+        <div class="settings-section">
+          <h3>Общие</h3>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">Запуск при старте системы</span>
+              <span class="setting-desc">Автоматически запускать VesVG при включении компьютера</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">Автоподключение</span>
+              <span class="setting-desc">Подключаться к последнему серверу при запуске</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">Уведомления</span>
+              <span class="setting-desc">Показывать уведомления о состоянии подключения</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Безопасность</h3>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">Kill Switch</span>
+              <span class="setting-desc">Блокировать интернет при отключении VPN</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">DNS Leak Protection</span>
+              <span class="setting-desc">Защита от утечек DNS</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Протокол</h3>
+          <div class="protocol-selector">
+            <button class="protocol-btn active">OpenVPN</button>
+            <button class="protocol-btn">WireGuard</button>
+            <button class="protocol-btn">IKEv2</button>
+            <button class="protocol-btn">Авто</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Язык</h3>
+          <select class="language-select">
+            <option value="ru" selected>Русский</option>
+            <option value="en">English</option>
+            <option value="uk">Українська</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </div>
+        <div class="app-info">
+          <p>VesVG v1.0.0</p>
+          <p class="app-info-sub">© 2025 VesVG. Все права защищены.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
