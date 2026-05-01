@@ -469,6 +469,7 @@ function connect() {
     connectBtn.textContent = 'Отключить';
     statusText.textContent = 'Подключён';
     statusText.classList.add('connected');
+    document.body.classList.add('vpn-connected');
 
     // Start connection timer
     connectionSeconds = 0;
@@ -488,6 +489,7 @@ function disconnect() {
   connectBtn.textContent = 'Подключить';
   statusText.textContent = 'Отключён';
   statusText.classList.remove('connected');
+  document.body.classList.remove('vpn-connected');
 
   if (connectionTimer) {
     clearInterval(connectionTimer);
@@ -536,6 +538,33 @@ document.querySelectorAll('.protocol-btn').forEach(btn => {
     btn.classList.add('active');
   });
 });
+
+// ==================== THEME SWITCHER ====================
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const theme = btn.dataset.theme;
+    document.body.classList.remove('theme-dark', 'theme-midnight');
+    if (theme === 'dark') {
+      document.body.classList.add('theme-dark');
+    } else if (theme === 'midnight') {
+      document.body.classList.add('theme-midnight');
+    }
+    try { localStorage.setItem('vesvg-theme', theme); } catch(e) {}
+  });
+});
+
+// Restore saved theme
+try {
+  const saved = localStorage.getItem('vesvg-theme');
+  if (saved && saved !== 'light') {
+    document.body.classList.add('theme-' + saved);
+    document.querySelectorAll('.theme-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === saved);
+    });
+  }
+} catch(e) {}
 
 // ==================== INIT ====================
 renderServers();
