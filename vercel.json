@@ -13,15 +13,24 @@
     }
   ],
   "functions": {
-    "api/*.js": {
-      "memory": 256,
-      "maxDuration": 30,
-      "includeFiles": "{data,templates,music}/**"
-    },
     "api/mux.js": {
       "memory": 1024,
       "maxDuration": 60,
       "includeFiles": "{data,templates,music,node_modules/ffmpeg-static}/**"
+    },
+    "api/apartments.js": {
+      "memory": 256,
+      "maxDuration": 30,
+      "includeFiles": "data/**"
+    },
+    "api/templates.js": {
+      "memory": 256,
+      "maxDuration": 30,
+      "includeFiles": "templates/**"
+    },
+    "api/llm.js": {
+      "memory": 256,
+      "maxDuration": 30
     }
   }
 }
