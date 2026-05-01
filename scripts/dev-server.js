@@ -10,11 +10,13 @@ const port = Number(process.argv[2]) || 3000;
 const apartments = require('../api/apartments');
 const llm = require('../api/llm');
 const templates = require('../api/templates');
+const mux = require('../api/mux');
 
 const ROUTES = {
   '/api/apartments': apartments,
   '/api/llm': llm,
   '/api/templates': templates,
+  '/api/mux': mux,
 };
 
 const STATIC_TYPES = {
@@ -28,6 +30,7 @@ const STATIC_TYPES = {
   '.mp3': 'audio/mpeg',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
+  '.wasm': 'application/wasm',
 };
 
 const server = http.createServer((req, res) => {
@@ -50,6 +53,11 @@ const server = http.createServer((req, res) => {
     }
     const ext = path.extname(filePath);
     res.setHeader('Content-Type', STATIC_TYPES[ext] || 'application/octet-stream');
+    // Enable cross-origin isolation so SharedArrayBuffer is available
+    // (needed by ffmpeg.wasm to mux the music track into the final mp4).
+    // 'credentialless' lets us use third-party images without CORP headers.
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
     res.end(content);
   });
 });

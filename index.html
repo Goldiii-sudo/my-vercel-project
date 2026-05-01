@@ -1995,65 +1995,51 @@ async function recordVideo(canvas, ctx, slides) {
 // ============================================================
 async function convertToMP4(webmBlob, opts) {
     opts = opts || {};
-    const musicTrack = opts.musicTrack || null;   // { url, ... } or null
+    const musicTrack = opts.musicTrack || null;
+    // Try the server endpoint first — it converts webm→mp4 and mixes music
+    // in one fast native-ffmpeg pass.
+    try {
+        setProgress(91, musicTrack ? 'Конвертация в MP4 + музыка…' : 'Конвертация в MP4…');
+        const fd = new FormData();
+        const ext = (webmBlob.type || '').includes('mp4') ? 'mp4' : 'webm';
+        fd.append('video', webmBlob, `in.${ext}`);
+        if (musicTrack && musicTrack.id) fd.append('musicId', musicTrack.id);
+        const r = await fetch('/api/mux', { method: 'POST', body: fd });
+        if (r.ok) {
+            return await r.blob();
+        }
+        console.warn('Server mux failed:', r.status, await r.text().catch(()=>''));
+    } catch (e) {
+        console.warn('Server mux unreachable, trying ffmpeg.wasm fallback:', e);
+    }
+
+    // Fallback: ffmpeg.wasm in the browser (no audio — single-thread is too
+    // slow to handle audio at acceptable speed).
     if (typeof SharedArrayBuffer === 'undefined') {
         setProgress(92, 'SharedArrayBuffer недоступен → сохраняем WebM');
         await delay(1200);
         return null;
     }
     try {
-        setProgress(91, 'Загрузка FFmpeg.wasm…');
-        const { FFmpeg }    = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
-        const { fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js');
+        setProgress(92, 'Конвертация WebM → MP4 (запасной путь)…');
+        const { FFmpeg }    = await import('/ffmpeg/ffmpeg/index.js');
+        const { fetchFile } = await import('/ffmpeg/util/index.js');
         const ffmpeg = new FFmpeg();
         ffmpeg.on('progress', ({ progress: p }) => {
-            setProgress(91 + Math.round(Math.min(p,1)*7), `MP4: ${Math.round(p*100)}%`);
+            setProgress(92 + Math.round(Math.min(p,1)*5), `MP4: ${Math.round(p*100)}%`);
         });
         await ffmpeg.load({
-            coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
-            wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm'
+            coreURL: '/ffmpeg/core/ffmpeg-core.js',
+            wasmURL: '/ffmpeg/core/ffmpeg-core.wasm'
         });
         await ffmpeg.writeFile('in.webm', await fetchFile(webmBlob));
-
-        let args;
-        if (musicTrack && musicTrack.url) {
-            try {
-                setProgress(92, 'Загрузка музыки…');
-                const audioData = await fetchFile(musicTrack.url);
-                await ffmpeg.writeFile('music.mp3', audioData);
-                setProgress(93, 'Конвертация WebM → MP4 + музыка…');
-                // -shortest cuts the music when video ends.
-                // afade out the last 1.5s for a smooth tail.
-                // -stream_loop -1 lets the music repeat if the video is longer
-                // than the track. -shortest then trims to video length.
-                args = [
-                    '-i', 'in.webm',
-                    '-stream_loop', '-1', '-i', 'music.mp3',
-                    '-map', '0:v:0', '-map', '1:a:0',
-                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-                    '-pix_fmt', 'yuv420p',
-                    '-c:a', 'aac', '-b:a', '160k',
-                    '-af', 'volume=0.55',
-                    '-shortest',
-                    '-movflags', '+faststart',
-                    'out.mp4'
-                ];
-            } catch (e) {
-                console.warn('Music load failed, encoding without audio:', e);
-                args = ['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4'];
-            }
-        } else {
-            setProgress(93, 'Конвертация WebM → MP4…');
-            args = ['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4'];
-        }
-        await ffmpeg.exec(args);
+        await ffmpeg.exec(['-i','in.webm','-c:v','libx264','-preset','ultrafast','-crf','24','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
         const data = await ffmpeg.readFile('out.mp4');
         try { await ffmpeg.deleteFile('in.webm'); } catch(_){}
-        try { await ffmpeg.deleteFile('music.mp3'); } catch(_){}
         try { await ffmpeg.deleteFile('out.mp4'); } catch(_){}
         return new Blob([data.buffer], { type:'video/mp4' });
     } catch (e) {
-        console.warn('FFmpeg failed:', e);
+        console.warn('FFmpeg.wasm fallback failed:', e);
         setProgress(96, 'MP4 не удался → сохраняем WebM');
         await delay(1200);
         return null;
