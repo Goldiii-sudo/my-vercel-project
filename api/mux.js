@@ -228,48 +228,32 @@ module.exports = async (req, res) => {
 
     logTmpUsage('before-mux');
 
+    outPath = await muxToFile({ videoPath, musicId, res });
+    if (!outPath) return;
+    // Free the input right away so it doesn't sit alongside the output on /tmp.
+    try { fs.unlinkSync(videoPath); videoPath = null; } catch(_){}
+    const stat = fs.statSync(outPath);
+
     if (isMultipart) {
-      // Legacy: write to disk then stream back with Content-Length.
-      outPath = await muxToFile({ videoPath, musicId, res });
-      if (!outPath) return;
-      const stat = fs.statSync(outPath);
       res.statusCode = 200;
       res.setHeader('Content-Type', 'video/mp4');
       res.setHeader('Content-Length', String(stat.size));
       fs.createReadStream(outPath).pipe(res);
-      res.on('close', () => {
-        try { fs.unlinkSync(outPath); } catch(_){}
-        try { fs.unlinkSync(videoPath); } catch(_){}
-      });
+      res.on('close', () => { try { fs.unlinkSync(outPath); } catch(_){} });
       return;
     }
 
-    // Production: stream ffmpeg stdout straight into Vercel Blob so the
-    // full output never touches /tmp (/tmp is 512 MB but shared; encoding
-    // 60s/1080p can temporarily push us past it).
-    const wantMusic = !!musicId;
-    let musicPath = null;
-    if (wantMusic) {
-      musicPath = findMusicFile(musicId);
-      if (!musicPath) { sendJSON(res, 404, { error: `music track not found: ${musicId}` }); return; }
-    }
-    const isWebm = sniffIsWebm(videoPath);
-    const args = buildFFmpegArgs({ videoPath, musicPath, isWebm, outTarget: 'stdout' });
-    const { stdout, exited } = spawnFFmpegToStdout(args);
-
+    // Production: upload mp4 from disk (streamed) to Blob and return URL.
     const { put } = require('@vercel/blob');
     const key = `muxed/${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
-    const [blob] = await Promise.all([
-      put(key, stdout, {
-        access: 'public',
-        contentType: 'video/mp4',
-        addRandomSuffix: false,
-        cacheControlMaxAge: 60 * 60 * 24,
-      }),
-      exited,
-    ]);
-    sendJSON(res, 200, { url: blob.url, contentType: 'video/mp4' });
-    try { fs.unlinkSync(videoPath); } catch(_){}
+    const blob = await put(key, fs.createReadStream(outPath), {
+      access: 'public',
+      contentType: 'video/mp4',
+      addRandomSuffix: false,
+      cacheControlMaxAge: 60 * 60 * 24,
+    });
+    sendJSON(res, 200, { url: blob.url, size: stat.size, contentType: 'video/mp4' });
+    try { fs.unlinkSync(outPath); } catch(_){}
     logTmpUsage('after-mux');
   } catch (err) {
     console.error('[mux] error:', err);
