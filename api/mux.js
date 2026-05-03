@@ -88,7 +88,16 @@ async function muxFile({ videoPath, musicId, res }) {
   args.push('-map', '0:v:0');
   if (wantMusic) args.push('-map', '1:a:0');
   if (isWebm) {
-    args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p');
+    // Hobby has 60s max — pick encoder settings that keep us comfortably
+    // under that even on the slowest cold-start shared CPU for 1080p/60fps.
+    args.push(
+      '-c:v', 'libx264',
+      '-preset', 'ultrafast',
+      '-crf', '22',
+      '-pix_fmt', 'yuv420p',
+      '-tune', 'fastdecode',
+      '-threads', '0',
+    );
   } else {
     args.push('-c:v', 'copy');
   }
