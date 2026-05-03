@@ -62,9 +62,37 @@ function runFFmpeg(args) {
 async function downloadToFile(url, destPath) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`download ${url} → HTTP ${resp.status}`);
-  const ab = await resp.arrayBuffer();
-  fs.writeFileSync(destPath, Buffer.from(ab));
+  // Stream to disk instead of buffering the whole file in memory. This halves
+  // peak memory and avoids tripping the Lambda's 512 MB limit on 80+ MB webms.
+  const ws = fs.createWriteStream(destPath);
+  const reader = resp.body.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      await new Promise((r, e) => ws.write(Buffer.from(value), err => err ? e(err) : r()));
+    }
+  } finally {
+    await new Promise(r => ws.end(r));
+  }
   return destPath;
+}
+
+// Clean up any stale mux-in-/mux-out- files older than 5 minutes left behind
+// by previous invocations sharing this Lambda's /tmp (512 MB cap).
+function cleanupTmp() {
+  try {
+    const dir = os.tmpdir();
+    const now = Date.now();
+    for (const name of fs.readdirSync(dir)) {
+      if (!/^mux-(in|out)-/.test(name)) continue;
+      const full = path.join(dir, name);
+      try {
+        const st = fs.statSync(full);
+        if (now - st.mtimeMs > 5 * 60 * 1000) fs.unlinkSync(full);
+      } catch(_){}
+    }
+  } catch(_){}
 }
 
 async function muxFile({ videoPath, musicId, res }) {
@@ -112,6 +140,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
   if (req.method !== 'POST') { sendJSON(res, 405, { error: 'Method not allowed' }); return; }
 
+  cleanupTmp();
   const contentType = (req.headers['content-type'] || '').toLowerCase();
   const isMultipart = contentType.startsWith('multipart/form-data');
 
@@ -167,11 +196,11 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // Production: upload mp4 to Blob and return a URL.
+    // Production: upload mp4 to Blob (stream the file so we don't buffer the
+    // whole output in memory on top of ffmpeg's working set) and return a URL.
     const { put } = require('@vercel/blob');
-    const buf = fs.readFileSync(outPath);
     const key = `muxed/${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
-    const blob = await put(key, buf, {
+    const blob = await put(key, fs.createReadStream(outPath), {
       access: 'public',
       contentType: 'video/mp4',
       addRandomSuffix: false,
