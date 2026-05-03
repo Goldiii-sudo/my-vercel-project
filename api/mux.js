@@ -78,21 +78,26 @@ async function downloadToFile(url, destPath) {
   return destPath;
 }
 
-// Clean up any stale mux-in-/mux-out- files older than 5 minutes left behind
-// by previous invocations sharing this Lambda's /tmp (512 MB cap).
+// Aggressively clean every mux-related file from /tmp at the start of each
+// invocation. Vercel Hobby has concurrency=1 per instance, so there's never
+// another /api/mux request in flight we could race with. /tmp is only 512 MB
+// and is shared across warm invocations — leftovers from previous runs
+// caused ENOSPC on 60 s 1080p jobs.
 function cleanupTmp() {
+  let reclaimed = 0;
   try {
     const dir = os.tmpdir();
-    const now = Date.now();
     for (const name of fs.readdirSync(dir)) {
       if (!/^mux-(in|out)-/.test(name)) continue;
       const full = path.join(dir, name);
       try {
         const st = fs.statSync(full);
-        if (now - st.mtimeMs > 5 * 60 * 1000) fs.unlinkSync(full);
+        fs.unlinkSync(full);
+        reclaimed += st.size;
       } catch(_){}
     }
   } catch(_){}
+  if (reclaimed) console.log(`[mux] reclaimed ${(reclaimed/1048576).toFixed(1)} MB from /tmp`);
 }
 
 async function muxFile({ videoPath, musicId, res }) {
@@ -106,8 +111,11 @@ async function muxFile({ videoPath, musicId, res }) {
     }
   }
 
-  // Sniff magic bytes: webm=0x1A45DFA3, mp4=ftyp at byte 4.
-  const head = fs.readFileSync(videoPath).slice(0, 16);
+  // Sniff magic bytes on the first 16 bytes without slurping the whole file.
+  const fd = fs.openSync(videoPath, 'r');
+  const head = Buffer.alloc(16);
+  fs.readSync(fd, head, 0, 16, 0);
+  fs.closeSync(fd);
   const isWebm = head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3;
 
   const outPath = path.join(os.tmpdir(), `mux-out-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
@@ -130,7 +138,10 @@ async function muxFile({ videoPath, musicId, res }) {
     args.push('-c:v', 'copy');
   }
   if (wantMusic) args.push('-c:a', 'aac', '-b:a', '160k', '-af', 'volume=0.55', '-shortest');
-  args.push('-movflags', '+faststart', outPath);
+  // Skip +faststart: it forces a second pass that rewrites the whole mp4 and
+  // needed an extra copy of the file on /tmp. Since the browser downloads the
+  // whole file before playback here, we don't need moov-at-front.
+  args.push(outPath);
   await runFFmpeg(args);
   return outPath;
 }
