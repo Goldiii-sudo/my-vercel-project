@@ -59,6 +59,38 @@ function runFFmpeg(args) {
   });
 }
 
+// Open ffmpeg writing mp4 fragments to stdout (no random access needed). The
+// caller pipes stdout straight to Vercel Blob's `put()` so we never keep the
+// whole output on /tmp (Lambda's /tmp is 512 MB but can fill quickly on
+// cold-start due to other packages unpacking there).
+function spawnFFmpegToStdout(args) {
+  const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  let stderr = '';
+  proc.stderr.on('data', d => { stderr += d.toString(); });
+  const exited = new Promise((resolve, reject) => {
+    proc.on('error', reject);
+    proc.on('close', code => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg exited ${code}\n${stderr.slice(-2000)}`));
+    });
+  });
+  return { stdout: proc.stdout, exited };
+}
+
+function logTmpUsage(tag) {
+  try {
+    const dir = os.tmpdir();
+    let total = 0, files = 0;
+    for (const name of fs.readdirSync(dir)) {
+      try {
+        const st = fs.statSync(path.join(dir, name));
+        if (st.isFile()) { total += st.size; files += 1; }
+      } catch(_){}
+    }
+    console.log(`[mux] /tmp ${tag}: ${files} files, ${(total/1048576).toFixed(1)} MB`);
+  } catch(_){}
+}
+
 async function downloadToFile(url, destPath) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`download ${url} → HTTP ${resp.status}`);
@@ -100,32 +132,13 @@ function cleanupTmp() {
   if (reclaimed) console.log(`[mux] reclaimed ${(reclaimed/1048576).toFixed(1)} MB from /tmp`);
 }
 
-async function muxFile({ videoPath, musicId, res }) {
-  const wantMusic = !!musicId;
-  let musicPath = null;
-  if (wantMusic) {
-    musicPath = findMusicFile(musicId);
-    if (!musicPath) {
-      sendJSON(res, 404, { error: `music track not found: ${musicId}` });
-      return null;
-    }
-  }
-
-  // Sniff magic bytes on the first 16 bytes without slurping the whole file.
-  const fd = fs.openSync(videoPath, 'r');
-  const head = Buffer.alloc(16);
-  fs.readSync(fd, head, 0, 16, 0);
-  fs.closeSync(fd);
-  const isWebm = head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3;
-
-  const outPath = path.join(os.tmpdir(), `mux-out-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+function buildFFmpegArgs({ videoPath, musicPath, isWebm, outTarget }) {
+  const wantMusic = !!musicPath;
   const args = ['-y', '-i', videoPath];
   if (wantMusic) args.push('-stream_loop', '-1', '-i', musicPath);
   args.push('-map', '0:v:0');
   if (wantMusic) args.push('-map', '1:a:0');
   if (isWebm) {
-    // Hobby has 60s max — pick encoder settings that keep us comfortably
-    // under that even on the slowest cold-start shared CPU for 1080p/60fps.
     args.push(
       '-c:v', 'libx264',
       '-preset', 'ultrafast',
@@ -138,11 +151,35 @@ async function muxFile({ videoPath, musicId, res }) {
     args.push('-c:v', 'copy');
   }
   if (wantMusic) args.push('-c:a', 'aac', '-b:a', '160k', '-af', 'volume=0.55', '-shortest');
-  // Skip +faststart: it forces a second pass that rewrites the whole mp4 and
-  // needed an extra copy of the file on /tmp. Since the browser downloads the
-  // whole file before playback here, we don't need moov-at-front.
-  args.push(outPath);
-  await runFFmpeg(args);
+  if (outTarget === 'stdout') {
+    // Fragmented mp4 can be written to a non-seekable stream (stdout).
+    args.push('-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-f', 'mp4', 'pipe:1');
+  } else {
+    args.push(outTarget);
+  }
+  return args;
+}
+
+function sniffIsWebm(videoPath) {
+  const fd = fs.openSync(videoPath, 'r');
+  const head = Buffer.alloc(16);
+  fs.readSync(fd, head, 0, 16, 0);
+  fs.closeSync(fd);
+  return head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3;
+}
+
+// Legacy dev path: write output to disk so we can stream it back on the same
+// HTTP response with a Content-Length header.
+async function muxToFile({ videoPath, musicId, res }) {
+  const wantMusic = !!musicId;
+  let musicPath = null;
+  if (wantMusic) {
+    musicPath = findMusicFile(musicId);
+    if (!musicPath) { sendJSON(res, 404, { error: `music track not found: ${musicId}` }); return null; }
+  }
+  const isWebm = sniffIsWebm(videoPath);
+  const outPath = path.join(os.tmpdir(), `mux-out-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+  await runFFmpeg(buildFFmpegArgs({ videoPath, musicPath, isWebm, outTarget: outPath }));
   return outPath;
 }
 
@@ -189,13 +226,13 @@ module.exports = async (req, res) => {
       await downloadToFile(videoUrl, videoPath);
     }
 
-    outPath = await muxFile({ videoPath, musicId, res });
-    if (!outPath) return; // res already written by muxFile (404 etc.)
-
-    const stat = fs.statSync(outPath);
+    logTmpUsage('before-mux');
 
     if (isMultipart) {
-      // Legacy: stream mp4 directly back to client (dev server).
+      // Legacy: write to disk then stream back with Content-Length.
+      outPath = await muxToFile({ videoPath, musicId, res });
+      if (!outPath) return;
+      const stat = fs.statSync(outPath);
       res.statusCode = 200;
       res.setHeader('Content-Type', 'video/mp4');
       res.setHeader('Content-Length', String(stat.size));
@@ -207,20 +244,33 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // Production: upload mp4 to Blob (stream the file so we don't buffer the
-    // whole output in memory on top of ffmpeg's working set) and return a URL.
+    // Production: stream ffmpeg stdout straight into Vercel Blob so the
+    // full output never touches /tmp (/tmp is 512 MB but shared; encoding
+    // 60s/1080p can temporarily push us past it).
+    const wantMusic = !!musicId;
+    let musicPath = null;
+    if (wantMusic) {
+      musicPath = findMusicFile(musicId);
+      if (!musicPath) { sendJSON(res, 404, { error: `music track not found: ${musicId}` }); return; }
+    }
+    const isWebm = sniffIsWebm(videoPath);
+    const args = buildFFmpegArgs({ videoPath, musicPath, isWebm, outTarget: 'stdout' });
+    const { stdout, exited } = spawnFFmpegToStdout(args);
+
     const { put } = require('@vercel/blob');
     const key = `muxed/${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
-    const blob = await put(key, fs.createReadStream(outPath), {
-      access: 'public',
-      contentType: 'video/mp4',
-      addRandomSuffix: false,
-      cacheControlMaxAge: 60 * 60 * 24, // 24h — these are one-off exports.
-    });
-    sendJSON(res, 200, { url: blob.url, size: stat.size, contentType: 'video/mp4' });
-
-    try { fs.unlinkSync(outPath); } catch(_){}
+    const [blob] = await Promise.all([
+      put(key, stdout, {
+        access: 'public',
+        contentType: 'video/mp4',
+        addRandomSuffix: false,
+        cacheControlMaxAge: 60 * 60 * 24,
+      }),
+      exited,
+    ]);
+    sendJSON(res, 200, { url: blob.url, contentType: 'video/mp4' });
     try { fs.unlinkSync(videoPath); } catch(_){}
+    logTmpUsage('after-mux');
   } catch (err) {
     console.error('[mux] error:', err);
     sendJSON(res, 500, { error: 'Mux failed', detail: String(err.message || err) });
