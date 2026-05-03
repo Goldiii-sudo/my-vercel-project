@@ -31,6 +31,10 @@
     "api/llm.js": {
       "memory": 256,
       "maxDuration": 30
+    },
+    "api/blob-upload.js": {
+      "memory": 256,
+      "maxDuration": 30
     }
   }
 }
