@@ -805,13 +805,13 @@ function renderDbGrid() {
         return;
     }
     grid.innerHTML = filtered.map(a => {
-        const cover = (a.images && a.images[0]) || '';
+        const cover = (a.images && a.images[0]) ? proxiedPhotoUrl(a.images[0]) : '';
         const price = a.price ? `${a.price.toLocaleString('ru-RU')} ${a.currency || ''}` : 'Цена по запросу';
         const sub = [a.rooms ? a.rooms + '-комн.' : null, a.area ? a.area + ' м²' : null, a.district].filter(Boolean).join(' • ');
         const isSel = selectedApartment && selectedApartment.id === a.id;
         const previewImgs = (a.images || []).slice(0, 8);
         const previewStrip = previewImgs.length
-            ? `<div class="preview-strip">${previewImgs.map(u => `<img src="${u}" alt="" referrerpolicy="no-referrer" loading="lazy">`).join('')}</div>`
+            ? `<div class="preview-strip">${previewImgs.map(u => `<img src="${proxiedPhotoUrl(u)}" alt="" referrerpolicy="no-referrer" loading="lazy">`).join('')}</div>`
             : '';
         const galleryTrigger = (a.images && a.images.length)
             ? `<div class="gallery-trigger" title="Открыть галерею" onclick="event.stopPropagation(); openGalleryForApt(${a.id})">⛶</div>`
@@ -976,8 +976,9 @@ function showGalleryAt(i) {
     main.classList.remove('loaded');
     main.onload = () => main.classList.add('loaded');
     main.onerror = () => main.classList.add('loaded');
-    main.src = url;
-    $('#gal-backdrop').style.backgroundImage = `url("${url}")`;
+    const pu = proxiedPhotoUrl(url);
+    main.src = pu;
+    $('#gal-backdrop').style.backgroundImage = `url("${pu}")`;
     $('#gal-counter').textContent = `${i + 1} / ${galleryState.urls.length}`;
     // Highlight active thumb + scroll into view
     const strip = $('#gal-strip');
@@ -992,7 +993,7 @@ function renderGalleryStrip() {
     const strip = $('#gal-strip');
     strip.innerHTML = galleryState.urls.map((u, i) => `
         <div class="gal-thumb ${i === galleryState.idx ? 'active' : ''}" onclick="showGalleryAt(${i})">
-            <img src="${u}" alt="" referrerpolicy="no-referrer" loading="lazy">
+            <img src="${proxiedPhotoUrl(u)}" alt="" referrerpolicy="no-referrer" loading="lazy">
         </div>
     `).join('');
 }
@@ -1046,6 +1047,17 @@ async function applyApartmentToForm(apt) {
     window.__dbDescription = apt.description || '';
 }
 
+// GCS images served by korter only set Access-Control-Allow-Origin for the
+// localhost origin — not for our production domain. Route them through our
+// own /api/photo proxy so the browser sees proper CORS headers and the
+// canvas isn't tainted for video encoding.
+function proxiedPhotoUrl(url) {
+    if (/^https:\/\/storage\.googleapis\.com\/bd-ge-01\//i.test(url)) {
+        return '/api/photo?url=' + encodeURIComponent(url);
+    }
+    return url;
+}
+
 function loadImgFromUrl(url) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -1053,7 +1065,7 @@ function loadImgFromUrl(url) {
         img.referrerPolicy = 'no-referrer';
         img.onload = () => resolve(img);
         img.onerror = () => reject(new Error('Failed to load: ' + url));
-        img.src = url;
+        img.src = proxiedPhotoUrl(url);
     });
 }
 
