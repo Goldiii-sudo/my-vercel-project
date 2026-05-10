@@ -88,7 +88,11 @@ module.exports = async (req, res) => {
   }
 
   const choice = parsed?.choices?.[0];
-  const outText = (choice?.message?.content || '').trim();
+  // Qwen-3.5 reasoning models (and a few others on NIM) emit their actual
+  // output in `message.reasoning_content`; `message.content` is left empty.
+  // Fall back to reasoning_content so we don't lose the entire response.
+  const msg = choice?.message || {};
+  const outText = (msg.content || msg.reasoning_content || '').trim();
 
   sendJSON(res, 200, {
     model: useModel,
