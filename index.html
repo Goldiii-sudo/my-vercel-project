@@ -119,8 +119,37 @@
             overflow: hidden;
             background: #000;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            max-height: 70vh;
         }
-        .canvas-container canvas { width: 100%; display: block; }
+        .canvas-container canvas { max-width: 100%; max-height: 70vh; display: block; }
+
+        /* Aspect ratio + music chip pickers */
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border-radius: 9999px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            color: #cbd5e1; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.15s ease;
+            user-select: none;
+        }
+        .chip:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.4); color: #fff; }
+        .chip.active {
+            background: linear-gradient(135deg,#6366f1 0%,#a855f7 100%);
+            border-color: transparent; color: #fff;
+        }
+        .chip .chip-icon { font-size: 14px; }
+        .chip .chip-meta { font-size: 10px; opacity: 0.65; font-weight: 500; }
+
+        /* Audio preview button + active state for music chip */
+        .music-chip { padding-right: 8px; }
+        .music-chip .play-btn {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: rgba(0,0,0,0.35); display: inline-flex;
+            align-items: center; justify-content: center; font-size: 10px;
+            margin-left: 4px;
+        }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -138,6 +167,224 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; display: inline-block; }
+
+        .tab-nav {
+            display: flex;
+            gap: 6px;
+            background: rgba(17,24,39,0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(75,85,99,0.25);
+            border-radius: 14px;
+            padding: 6px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+        }
+        .tab-btn:hover { color: #e2e8f0; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(168,85,247,0.18));
+            color: #fff;
+            border-color: rgba(99,102,241,0.45);
+        }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .apt-card {
+            background: rgba(17,24,39,0.6);
+            border: 1px solid rgba(75,85,99,0.3);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .apt-card:hover {
+            border-color: rgba(99,102,241,0.6);
+            transform: translateY(-2px);
+        }
+        .apt-card.selected {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+        }
+        .apt-thumb {
+            width: 100%;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            background: #1f2937;
+        }
+
+        .tpl-card {
+            background: rgba(17,24,39,0.6);
+            border: 1px solid rgba(75,85,99,0.3);
+            border-radius: 14px;
+            padding: 14px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .tpl-card:hover { border-color: rgba(99,102,241,0.55); }
+        .tpl-card.selected {
+            border-color: #6366f1;
+            background: rgba(99,102,241,0.1);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.18);
+        }
+
+        /* Gallery: hover-preview strip inside the apartment card */
+        .apt-card { position: relative; }
+        .apt-thumb-wrap { position: relative; overflow: hidden; }
+        .apt-thumb-wrap .preview-strip {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            display: flex; gap: 4px; padding: 6px;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 30%, transparent);
+            transform: translateY(105%);
+            transition: transform 0.25s ease;
+            pointer-events: none;
+        }
+        .apt-card:hover .apt-thumb-wrap .preview-strip { transform: translateY(0); }
+        .apt-thumb-wrap .preview-strip img {
+            width: 44px; height: 44px; object-fit: cover; border-radius: 4px;
+            flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15);
+        }
+        .apt-thumb-wrap .gallery-trigger {
+            position: absolute; top: 8px; right: 8px;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 14px; opacity: 0; cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .apt-card:hover .apt-thumb-wrap .gallery-trigger { opacity: 1; }
+        .apt-thumb-wrap .gallery-trigger:hover { transform: scale(1.1); }
+        .apt-thumb-wrap .gallery-trigger:active { transform: scale(0.92); }
+        .apt-thumb-wrap .photo-count-pill {
+            position: absolute; top: 8px; left: 8px;
+            padding: 3px 8px; border-radius: 9999px;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+            color: white; font-size: 11px; font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        /* Touch / coarse-pointer devices: hover doesn't fire, so always show
+           the gallery trigger and the preview strip. Bigger tap targets too. */
+        @media (hover: none) and (pointer: coarse) {
+            .apt-thumb-wrap .gallery-trigger { opacity: 1; width: 42px; height: 42px; font-size: 16px; }
+            .apt-thumb-wrap .preview-strip { transform: translateY(0); }
+        }
+
+        /* Fullscreen gallery lightbox */
+        .gallery-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: none; opacity: 0;
+            background: #050608;
+            transition: opacity 0.3s ease;
+        }
+        .gallery-overlay.active { display: flex; opacity: 1; }
+        .gallery-overlay .gal-backdrop {
+            position: absolute; inset: -8%;
+            background-size: cover; background-position: center;
+            background-color: #050608;
+            filter: blur(56px) brightness(0.4) saturate(1.4);
+            transform: scale(1.12);
+            transition: background-image 0.4s ease;
+        }
+        .gallery-overlay .gal-overlay-tint {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.55);
+        }
+        .gallery-overlay .gal-content {
+            position: relative;
+            display: flex; flex-direction: column;
+            width: 100%; height: 100%;
+            padding: 2rem 1rem 1rem;
+            touch-action: pan-y;
+        }
+        .gallery-overlay .gal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            color: #fff; padding: 0 1rem 0.75rem;
+        }
+        .gallery-overlay .gal-title {
+            font-size: 14px; font-weight: 600;
+            max-width: 75%; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .gallery-overlay .gal-counter {
+            font-size: 13px; color: rgba(255,255,255,0.7);
+            font-variant-numeric: tabular-nums;
+        }
+        .gallery-overlay .gal-close {
+            position: absolute; top: 16px; right: 18px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 20px;
+            transition: background 0.2s ease;
+        }
+        .gallery-overlay .gal-close:hover { background: rgba(255,255,255,0.2); }
+        .gallery-overlay .gal-stage {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            position: relative; min-height: 0;
+        }
+        .gallery-overlay .gal-main {
+            max-height: 100%; max-width: min(92vw, 1200px);
+            border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            object-fit: contain;
+            opacity: 0; transition: opacity 0.25s ease;
+        }
+        .gallery-overlay .gal-main.loaded { opacity: 1; }
+        .gallery-overlay .gal-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 48px; height: 48px; border-radius: 50%;
+            background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+            color: white; border: 1px solid rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 20px; user-select: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .gallery-overlay .gal-nav:hover {
+            background: rgba(99,102,241,0.7); transform: translateY(-50%) scale(1.05);
+        }
+        .gallery-overlay .gal-nav.prev { left: 1.5rem; }
+        .gallery-overlay .gal-nav.next { right: 1.5rem; }
+        .gallery-overlay .gal-strip {
+            display: flex; gap: 8px; padding: 14px 1rem 6px;
+            overflow-x: auto; scrollbar-width: thin;
+            scroll-behavior: smooth;
+        }
+        .gallery-overlay .gal-strip::-webkit-scrollbar { height: 6px; }
+        .gallery-overlay .gal-strip::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2); border-radius: 3px;
+        }
+        .gallery-overlay .gal-thumb {
+            width: 96px; height: 64px; flex-shrink: 0;
+            border-radius: 8px; overflow: hidden;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+            opacity: 0.7;
+        }
+        .gallery-overlay .gal-thumb img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .gallery-overlay .gal-thumb:hover { opacity: 1; transform: translateY(-2px); }
+        .gallery-overlay .gal-thumb.active {
+            border-color: #6366f1; opacity: 1;
+            box-shadow: 0 0 0 2px rgba(99,102,241,0.4);
+        }
+
+        @keyframes galleryFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes galleryZoom {
+            from { transform: scale(0.96); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -160,19 +407,23 @@
 
         <main class="max-w-3xl mx-auto px-4 pb-16 space-y-6">
 
-            <!-- API Key -->
+            <!-- API Key / Backend status -->
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.05s">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-base font-semibold flex items-center gap-2">
-                        <span class="text-lg">🔑</span> API ключ Gemini
+                        <span class="text-lg">🔑</span> LLM API <span class="text-xs text-gray-500 font-normal">(NVIDIA NIM / Qwen)</span>
                     </h2>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener"
+                    <a href="https://build.nvidia.com/explore/discover" target="_blank" rel="noopener"
                        class="text-indigo-400 hover:text-indigo-300 text-xs transition">Получить ключ →</a>
                 </div>
+                <p class="text-xs text-gray-500 mb-2">
+                    Ключ хранится в Vercel env (<code>NVIDIA_API_KEY</code>) и используется через бэкенд <code>/api/llm</code>.
+                    Можно ввести свой ключ ниже для локальной разработки.
+                </p>
                 <div class="flex gap-2">
                     <input type="password" id="api-key"
                            class="flex-1 bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                           placeholder="AIzaSy...">
+                           placeholder="необязательно — оставьте пустым для использования бэкенда">
                     <button onclick="testApiKey()" id="test-api-btn"
                             class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700/50 rounded-xl text-sm font-medium transition whitespace-nowrap">
                         Проверить
@@ -180,6 +431,16 @@
                 </div>
                 <div id="api-status" class="mt-2 text-xs hidden"></div>
             </section>
+
+            <!-- Tabs -->
+            <nav class="tab-nav fade-in-up" style="animation-delay:0.07s">
+                <button class="tab-btn active" data-tab="manual">📸 Свои фото</button>
+                <button class="tab-btn" data-tab="db">🗄 Из базы</button>
+                <button class="tab-btn" data-tab="templates">🎨 Шаблоны</button>
+            </nav>
+
+            <!-- TAB: Manual upload -->
+            <div id="tab-manual" class="tab-pane active space-y-6">
 
             <!-- Photos -->
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.1s">
@@ -251,6 +512,80 @@
                        placeholder="+7 (999) 123-45-67 • Агентство «Недвижимость PRO»">
             </section>
 
+            </div><!-- /TAB: Manual -->
+
+            <!-- TAB: From DB -->
+            <div id="tab-db" class="tab-pane space-y-4">
+                <section class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-semibold flex items-center gap-2">
+                            <span class="text-lg">🗄</span> Квартиры из базы
+                        </h2>
+                        <span id="db-count" class="text-xs text-gray-500"></span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                        <input type="text" id="db-search"
+                               class="bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                               placeholder="Поиск: район, проект, ул...">
+                        <select id="db-rooms"
+                                class="bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white transition">
+                            <option value="">Все комнаты</option>
+                            <option value="1">1 (студия)</option>
+                            <option value="2">2-комн.</option>
+                            <option value="3">3-комн.</option>
+                            <option value="4">4-комн.</option>
+                        </select>
+                    </div>
+                    <div id="db-status" class="text-xs text-gray-500 mb-3">Загрузка...</div>
+                    <div id="db-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </section>
+                <section id="db-selected" class="glass-card rounded-2xl p-5 hidden">
+                    <h3 class="text-base font-semibold mb-2 flex items-center gap-2">
+                        <span class="text-lg">✓</span> Выбрано: <span id="db-selected-title" class="text-indigo-400"></span>
+                    </h3>
+                    <p id="db-selected-meta" class="text-xs text-gray-500 mb-3"></p>
+                    <div id="db-selected-thumbs" class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 mb-3"></div>
+                    <p class="text-xs text-gray-500 mb-3">Поля «Данные объекта» автоматически заполнены. Шаблоны можно выбрать на вкладке «Шаблоны» — или жми «Создать видео» с дефолтными.</p>
+                    <button id="db-generate-btn" onclick="startGeneration()"
+                            class="btn-primary w-full px-6 py-3 rounded-xl text-sm font-bold text-white tracking-wide">
+                        🎬 Создать видео из этой квартиры
+                    </button>
+                </section>
+            </div><!-- /TAB: DB -->
+
+            <!-- TAB: Templates -->
+            <div id="tab-templates" class="tab-pane space-y-4">
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">📐</span> Формат видео
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">YouTube — 16:9, Reels/TikTok/Shorts — 9:16, Instagram-фид — 1:1 / 4:5.</p>
+                    <div id="aspect-chips" class="chip-row"></div>
+                </section>
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">🎵</span> Музыка
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">Royalty-free, можно слушать перед выбором. «Без музыки» — оставит видео тихим.</p>
+                    <div id="music-chips" class="chip-row"></div>
+                    <audio id="music-preview" preload="none" style="display:none"></audio>
+                </section>
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">🎬</span> Шаблон видео
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">Стиль слайдов: длительность, переходы, оформление подписей.</p>
+                    <div id="video-tpl-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </section>
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">✍️</span> Шаблон текста
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">Тон и структура подписей, которые сгенерирует LLM.</p>
+                    <div id="text-tpl-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </section>
+            </div><!-- /TAB: Templates -->
+
             <!-- Generate -->
             <div class="text-center pt-2 fade-in-up" style="animation-delay:0.25s">
                 <button id="generate-btn" onclick="startGeneration()"
@@ -314,25 +649,75 @@
         </main>
     </div>
 
+    <!-- Fullscreen photo gallery (lightbox) -->
+    <div id="gallery-overlay" class="gallery-overlay" role="dialog" aria-modal="true" onclick="onGalleryBackdropClick(event)">
+        <div class="gal-backdrop" id="gal-backdrop"></div>
+        <div class="gal-overlay-tint"></div>
+        <div class="gal-content">
+            <button class="gal-close" type="button" aria-label="Закрыть" onclick="closeGallery()">✕</button>
+            <div class="gal-header">
+                <div class="gal-title" id="gal-title"></div>
+                <div class="gal-counter" id="gal-counter" aria-live="polite" aria-atomic="true">0 / 0</div>
+            </div>
+            <div class="gal-stage">
+                <button class="gal-nav prev" type="button" aria-label="Предыдущее" onclick="galleryPrev()">‹</button>
+                <img class="gal-main" id="gal-main" alt="" referrerpolicy="no-referrer" crossorigin="anonymous">
+                <button class="gal-nav next" type="button" aria-label="Следующее" onclick="galleryNext()">›</button>
+            </div>
+            <div class="gal-strip" id="gal-strip"></div>
+        </div>
+    </div>
+
 <script>
 // ============================================================
 // CONSTANTS
 // ============================================================
-const CW = 1280;
-const CH = 720;
-const SLIDE_DUR = 3.0;
+// Output canvas size — mutable, driven by the chosen aspect ratio chip.
+let CW = 1280;
+let CH = 720;
 const FADE_DUR = 0.6;
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Recording: 60fps capture and a generous bitrate keeps motion (Ken Burns +
+// transitions) sharp instead of looking like a slideshow on dial-up.
+const RECORD_FPS = 60;
+const RECORD_BITRATE = 12_000_000;
+// LLM is called only via the /api/llm backend proxy. The fallback path uses
+// the OpenAI-compatible NVIDIA NIM endpoint with the user-supplied key.
+const LLM_FALLBACK_MODEL = 'qwen/qwen3.5-122b-a10b';
+const LLM_FALLBACK_BASE  = 'https://integrate.api.nvidia.com/v1/chat/completions';
+
+// Output formats — width/height chosen to match real social-media specs.
+const ASPECT_RATIOS = [
+    { id: '16:9', label: '16:9', icon: '🖥', meta: 'YouTube',         w: 1280, h: 720  },
+    { id: '9:16', label: '9:16', icon: '📱', meta: 'Reels / TikTok',  w: 720,  h: 1280 },
+    { id: '1:1',  label: '1:1',  icon: '⬛', meta: 'IG feed',         w: 1080, h: 1080 },
+    { id: '4:5',  label: '4:5',  icon: '🟦', meta: 'IG portrait',     w: 1080, h: 1350 },
+];
+let selectedAspectId = '16:9';
+// Font scale derived from canvas size — keeps text readable when the
+// canvas is taller (vertical) or smaller (square) than the original 16:9.
+function fontScale() { return Math.min(CW, CH) / 720; }
+
+// Background music — fetched from /music/tracks.json at boot.
+let musicTracks = [];
+let selectedMusicId = '';   // '' = no music
+let _musicPreviewId = '';   // track currently being previewed
 
 // ============================================================
 // STATE
 // ============================================================
-let photos = [];          // { file, img, objectURL }
+let photos = [];          // { file, img, objectURL, source: 'manual'|'db' }
 let captions = [];
 let videoBlob = null;
 let isGenerating = false;
 let slidesSnapshot = [];  // store last generated slides for preview replay
+let currentSlideDur = 3.0;// pulled from selected video template
+
+let apartmentsList = [];      // summaries from /api/apartments
+let selectedApartment = null; // full record
+let videoTemplates = [];
+let textTemplates = [];
+let selectedVideoTemplateId = 'premium';
+let selectedTextTemplateId = 'selling-premium';
 
 // ============================================================
 // DOM
@@ -358,7 +743,7 @@ const downloadInfo = $('#download-info');
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('gemini_api_key');
+    const saved = localStorage.getItem('llm_api_key');
     if (saved) $('#api-key').value = saved;
 
     dropZone.addEventListener('click', () => fileInput.click());
@@ -366,7 +751,496 @@ document.addEventListener('DOMContentLoaded', () => {
     dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
     dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    $('#db-search').addEventListener('input', renderDbGrid);
+    $('#db-rooms').addEventListener('change', renderDbGrid);
+
+    loadApartments();
+    loadTemplates();
+    loadMusicTracks();
+    // Initialise canvas size + chip selection.
+    setAspectRatio(selectedAspectId);
 });
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+}
+
+// ============================================================
+// APARTMENTS DATABASE
+// ============================================================
+async function loadApartments() {
+    const status = $('#db-status');
+    try {
+        const r = await fetch('/api/apartments');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        apartmentsList = data.items || [];
+        $('#db-count').textContent = `всего в базе: ${data.count}`;
+        status.classList.add('hidden');
+        renderDbGrid();
+    } catch (e) {
+        status.textContent = 'Ошибка загрузки базы: ' + e.message + ' (запустите проект через vercel dev / на Vercel)';
+        status.className = 'text-xs text-amber-400 mb-3';
+    }
+}
+
+function renderDbGrid() {
+    const grid = $('#db-grid');
+    const q = ($('#db-search').value || '').toLowerCase().trim();
+    const rooms = $('#db-rooms').value;
+    const filtered = apartmentsList.filter(a => {
+        if (rooms && String(a.rooms) !== rooms) return false;
+        if (!q) return true;
+        const hay = `${a.title || ''} ${a.address || ''} ${a.district || ''} ${a.project || ''}`.toLowerCase();
+        return hay.includes(q);
+    });
+    if (!filtered.length) {
+        grid.innerHTML = '<p class="col-span-full text-sm text-gray-500 text-center py-4">Ничего не найдено</p>';
+        return;
+    }
+    grid.innerHTML = filtered.map(a => {
+        const cover = (a.images && a.images[0]) ? proxiedPhotoUrl(a.images[0]) : '';
+        const price = a.price ? `${a.price.toLocaleString('ru-RU')} ${a.currency || ''}` : 'Цена по запросу';
+        const sub = [a.rooms ? a.rooms + '-комн.' : null, a.area ? a.area + ' м²' : null, a.district].filter(Boolean).join(' • ');
+        const isSel = selectedApartment && selectedApartment.id === a.id;
+        const previewImgs = (a.images || []).slice(0, 8);
+        const previewStrip = previewImgs.length
+            ? `<div class="preview-strip">${previewImgs.map(u => `<img src="${proxiedPhotoUrl(u)}" alt="" referrerpolicy="no-referrer" loading="lazy">`).join('')}</div>`
+            : '';
+        const galleryTrigger = (a.images && a.images.length)
+            ? `<div class="gallery-trigger" title="Открыть галерею" onclick="event.stopPropagation(); openGalleryForApt(${a.id})">⛶</div>`
+            : '';
+        const countPill = a.image_count
+            ? `<div class="photo-count-pill">📷 ${a.image_count}</div>`
+            : '';
+        return `<div class="apt-card ${isSel ? 'selected' : ''}" onclick="selectApartment(${a.id})">
+            <div class="apt-thumb-wrap">
+                ${cover ? `<img class="apt-thumb" src="${cover}" alt="" referrerpolicy="no-referrer" crossorigin="anonymous" loading="lazy">` : '<div class="apt-thumb flex items-center justify-center text-gray-700 text-xs">нет фото</div>'}
+                ${countPill}
+                ${galleryTrigger}
+                ${previewStrip}
+            </div>
+            <div class="p-3">
+                <div class="text-sm font-semibold text-white line-clamp-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(a.title || '')}</div>
+                <div class="text-xs text-indigo-400 mt-1">${price}</div>
+                <div class="text-xs text-gray-500 mt-0.5">${escapeHtml(sub)}</div>
+                <div class="text-xs text-gray-600 mt-1">${a.image_count} фото</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function selectApartment(id) {
+    const status = $('#db-status');
+    status.textContent = 'Загрузка объекта...';
+    status.className = 'text-xs text-gray-400 mb-3';
+    status.classList.remove('hidden');
+    try {
+        const r = await fetch('/api/apartments?id=' + encodeURIComponent(id));
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const apt = await r.json();
+        selectedApartment = apt;
+        renderDbGrid();
+        await applyApartmentToForm(apt);
+        status.classList.add('hidden');
+    } catch (e) {
+        status.textContent = 'Ошибка: ' + e.message;
+        status.className = 'text-xs text-red-400 mb-3';
+    }
+}
+
+// ============================================================
+// PHOTO GALLERY (lightbox)
+// ============================================================
+let galleryState = { urls: [], idx: 0, title: '' };
+
+async function openGalleryForApt(id) {
+    // List endpoint truncates images to 6 — always fetch full record so the strip
+    // shows every photo of the apartment.
+    let apt = apartmentsList.find(x => x.id === id);
+    const needFull = !apt || !apt.images || (apt.image_count && apt.images.length < apt.image_count);
+    if (needFull) {
+        try {
+            const r = await fetch('/api/apartments?id=' + encodeURIComponent(id));
+            if (r.ok) apt = await r.json();
+        } catch (_) {}
+    }
+    if (!apt || !apt.images || !apt.images.length) return;
+    openGallery(apt.images, apt.title || ('ID ' + apt.id), 0);
+}
+
+let _galleryPrevFocus = null;
+
+function openGallery(urls, title, startIdx) {
+    galleryState.urls = urls.slice();
+    galleryState.idx = Math.max(0, Math.min(startIdx | 0, urls.length - 1));
+    galleryState.title = title || '';
+    document.documentElement.style.overflow = 'hidden';
+    const overlay = $('#gallery-overlay');
+    overlay.classList.add('active');
+    $('#gal-title').textContent = galleryState.title;
+    renderGalleryStrip();
+    showGalleryAt(galleryState.idx);
+    document.addEventListener('keydown', galleryKeyHandler);
+
+    // Touch/swipe — register on the stage (not the whole overlay) so
+    // tapping a thumbnail or close button still works as a normal click.
+    const stage = overlay.querySelector('.gal-stage');
+    if (stage) {
+        stage.addEventListener('touchstart', galleryTouchStart, { passive: true });
+        stage.addEventListener('touchend',   galleryTouchEnd,   { passive: true });
+    }
+
+    // Focus trap: remember who had focus, move focus into the modal,
+    // and trap Tab inside it until close.
+    _galleryPrevFocus = document.activeElement;
+    const closeBtn = overlay.querySelector('.gal-close');
+    if (closeBtn) closeBtn.focus();
+}
+
+function closeGallery() {
+    const overlay = $('#gallery-overlay');
+    overlay.classList.remove('active');
+    document.documentElement.style.overflow = '';
+    document.removeEventListener('keydown', galleryKeyHandler);
+    const stage = overlay.querySelector('.gal-stage');
+    if (stage) {
+        stage.removeEventListener('touchstart', galleryTouchStart);
+        stage.removeEventListener('touchend',   galleryTouchEnd);
+    }
+    if (_galleryPrevFocus && typeof _galleryPrevFocus.focus === 'function') {
+        try { _galleryPrevFocus.focus(); } catch (_) {}
+    }
+    _galleryPrevFocus = null;
+}
+
+let _touchStartX = 0, _touchStartY = 0, _touchStartT = 0;
+function galleryTouchStart(e) {
+    if (!e.touches || !e.touches.length) return;
+    _touchStartX = e.touches[0].clientX;
+    _touchStartY = e.touches[0].clientY;
+    _touchStartT = performance.now();
+}
+function galleryTouchEnd(e) {
+    if (!e.changedTouches || !e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - _touchStartX;
+    const dy = e.changedTouches[0].clientY - _touchStartY;
+    const dt = performance.now() - _touchStartT;
+    // Only treat as a swipe if mostly horizontal, fast enough, and far enough.
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 700) {
+        if (dx < 0) galleryNext();
+        else        galleryPrev();
+    }
+}
+
+function onGalleryBackdropClick(ev) {
+    // Only close when clicking the backdrop itself, not bubbled clicks from children.
+    if (ev.target.id === 'gallery-overlay' || ev.target.classList.contains('gal-overlay-tint') || ev.target.classList.contains('gal-backdrop')) {
+        closeGallery();
+    }
+}
+
+function galleryKeyHandler(e) {
+    if (e.key === 'Escape') { closeGallery(); return; }
+    if (e.key === 'ArrowRight') { galleryNext(); return; }
+    if (e.key === 'ArrowLeft')  { galleryPrev(); return; }
+    if (e.key === 'Tab') {
+        // Trap focus inside the gallery modal.
+        const overlay = $('#gallery-overlay');
+        if (!overlay) return;
+        const focusables = overlay.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last  = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault(); first.focus();
+        }
+    }
+}
+
+function galleryNext() { showGalleryAt((galleryState.idx + 1) % galleryState.urls.length); }
+function galleryPrev() { showGalleryAt((galleryState.idx - 1 + galleryState.urls.length) % galleryState.urls.length); }
+
+function showGalleryAt(i) {
+    galleryState.idx = i;
+    const url = galleryState.urls[i];
+    const main = $('#gal-main');
+    main.classList.remove('loaded');
+    main.onload = () => main.classList.add('loaded');
+    main.onerror = () => main.classList.add('loaded');
+    const pu = proxiedPhotoUrl(url);
+    main.src = pu;
+    $('#gal-backdrop').style.backgroundImage = `url("${pu}")`;
+    $('#gal-counter').textContent = `${i + 1} / ${galleryState.urls.length}`;
+    // Highlight active thumb + scroll into view
+    const strip = $('#gal-strip');
+    strip.querySelectorAll('.gal-thumb').forEach((el, j) => {
+        el.classList.toggle('active', j === i);
+    });
+    const active = strip.querySelector('.gal-thumb.active');
+    if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+}
+
+function renderGalleryStrip() {
+    const strip = $('#gal-strip');
+    strip.innerHTML = galleryState.urls.map((u, i) => `
+        <div class="gal-thumb ${i === galleryState.idx ? 'active' : ''}" onclick="showGalleryAt(${i})">
+            <img src="${proxiedPhotoUrl(u)}" alt="" referrerpolicy="no-referrer" loading="lazy">
+        </div>
+    `).join('');
+}
+
+function shortNameFromTitle(apt) {
+    // Korter titles are full sentences ("Продается студия квартира площадью
+    // 34.5 м² в Батуми, Oval. Цена — $71,000") — too long for a title slide
+    // and they re-encode the price, which already shows on the next line.
+    // Reduce to "<kind> в <project>" (or "<kind> N м²" when there's no
+    // project). Fall back to the raw title for unexpected formats.
+    const t = (apt.title || '').trim();
+    const re = /^(?:Продается|Сдается(?:\s+в\s+аренду)?)\s+([^,]+?)\s+(?:квартира|апартамент\S*)\s+площадью\s+[\d.,]+\s*м²\s+в\s+Батуми,\s*(.+?)(?:\.\s*Цена.*)?$/i;
+    const m = t.match(re);
+    if (!m) return t.replace(/\.\s*Цена.*$/i, '').replace(/\.$/, '').trim();
+    const kind = m[1].trim();
+    let where = m[2].trim();
+    // Strip street-address fluff ("ул. ..." → keep nothing; project names stay)
+    if (/^ул\.|^улица|^просп|^пер\./i.test(where)) where = apt.district || '';
+    const pieces = [kind];
+    if (where) pieces.push('в ' + where);
+    return pieces.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+async function applyApartmentToForm(apt) {
+    // Fill property fields from DB record
+    $('#prop-name').value = shortNameFromTitle(apt);
+    $('#prop-price').value = apt.price ? `${apt.price.toLocaleString('ru-RU')} ${apt.currency || ''}` : '';
+    $('#prop-area').value = apt.area ? `${apt.area} м²` : '';
+    $('#prop-district').value = [apt.district, apt.address].filter(Boolean).join(', ');
+    const features = [];
+    if (apt.rooms) features.push(`${apt.rooms}-комн.`);
+    if (apt.floor) features.push(`этаж ${apt.floor}`);
+    if (apt.project) features.push(apt.project);
+    if (apt.options && apt.options.length) features.push(...apt.options.slice(0, 3));
+    $('#prop-features').value = features.join(', ');
+
+    // Replace photos with DB images (load by URL into <img>)
+    photos.forEach(p => { if (p.objectURL) URL.revokeObjectURL(p.objectURL); });
+    photos = [];
+
+    // Korter / GCS hosts both /800x630/ (low-res, vertically stretched) and
+    // /1280x960/ (max public size). Use the larger version for sharp video.
+    const urls = (apt.images || []).slice(0, 20)
+        .map(u => u.replace('/800x630/', '/1280x960/'));
+    const sel = $('#db-selected');
+    const thumbs = $('#db-selected-thumbs');
+    sel.classList.remove('hidden');
+    $('#db-selected-title').textContent = apt.title || ('ID ' + apt.id);
+    $('#db-selected-meta').textContent = `${apt.district || ''} • ${urls.length} фото • ${apt.area || '?'} м²`;
+    thumbs.innerHTML = urls.map((u, i) =>
+        `<img data-idx="${i}" src="${u}" class="rounded-md aspect-square object-cover cursor-pointer hover:opacity-80 transition" referrerpolicy="no-referrer" loading="lazy">`
+    ).join('');
+    const galleryTitle = apt.title || ('ID ' + apt.id);
+    thumbs.querySelectorAll('img[data-idx]').forEach(el => {
+        el.addEventListener('click', () => openGallery(urls, galleryTitle, parseInt(el.dataset.idx, 10)));
+    });
+
+    // Pre-load images for canvas use
+    for (const url of urls) {
+        try {
+            const img = await loadImgFromUrl(url);
+            photos.push({ file: null, img, objectURL: url, source: 'db' });
+        } catch (e) {
+            console.warn('Failed to load image from DB:', url, e);
+        }
+    }
+    renderGrid();
+    $('#prop-description-internal') && ($('#prop-description-internal').value = apt.description || '');
+    // Stash full description for the LLM caption prompt
+    window.__dbDescription = apt.description || '';
+}
+
+// GCS images served by korter only set Access-Control-Allow-Origin for the
+// localhost origin — not for our production domain. Route them through our
+// own /api/photo proxy so the browser sees proper CORS headers and the
+// canvas isn't tainted for video encoding.
+function proxiedPhotoUrl(url) {
+    if (/^https:\/\/storage\.googleapis\.com\/bd-ge-01\//i.test(url)) {
+        return '/api/photo?url=' + encodeURIComponent(url);
+    }
+    return url;
+}
+
+function loadImgFromUrl(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.referrerPolicy = 'no-referrer';
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to load: ' + url));
+        img.src = proxiedPhotoUrl(url);
+    });
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// ============================================================
+// TEMPLATES
+// ============================================================
+async function loadTemplates() {
+    try {
+        const r = await fetch('/api/templates');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        videoTemplates = data.video || [];
+        textTemplates  = data.text  || [];
+    } catch (e) {
+        console.warn('Templates not available, using built-in defaults', e);
+        videoTemplates = BUILTIN_VIDEO_TEMPLATES;
+        textTemplates  = BUILTIN_TEXT_TEMPLATES;
+    }
+    renderTemplatePickers();
+}
+
+function renderAspectChips() {
+    const el = $('#aspect-chips');
+    if (!el) return;
+    el.innerHTML = ASPECT_RATIOS.map(a => `
+        <div class="chip ${a.id === selectedAspectId ? 'active' : ''}" onclick="setAspectRatio('${a.id}')">
+            <span class="chip-icon">${a.icon}</span>
+            <span>${a.label}</span>
+            <span class="chip-meta">${a.meta} · ${a.w}×${a.h}</span>
+        </div>`).join('');
+}
+
+function setAspectRatio(id) {
+    const a = ASPECT_RATIOS.find(x => x.id === id);
+    if (!a) return;
+    selectedAspectId = id;
+    CW = a.w; CH = a.h;
+    if (previewCanvas) {
+        previewCanvas.width = CW;
+        previewCanvas.height = CH;
+        // Force the container to use the new aspect for proper letterboxing.
+        previewCanvas.style.aspectRatio = `${a.w}/${a.h}`;
+    }
+    // Baked covers were sized for the previous aspect — invalidate them.
+    for (const p of photos) p.cover = null;
+    renderAspectChips();
+}
+
+async function loadMusicTracks() {
+    try {
+        const r = await fetch('/music/tracks.json');
+        musicTracks = r.ok ? await r.json() : [];
+    } catch (_) { musicTracks = []; }
+    renderMusicChips();
+}
+
+function renderMusicChips() {
+    const el = $('#music-chips');
+    if (!el) return;
+    const noMusic = `
+        <div class="chip ${selectedMusicId === '' ? 'active' : ''}" onclick="selectMusic('')">
+            <span class="chip-icon">🔇</span>
+            <span>Без музыки</span>
+        </div>`;
+    const tracks = musicTracks.map(t => `
+        <div class="chip music-chip ${t.id === selectedMusicId ? 'active' : ''}" onclick="selectMusic('${t.id}')">
+            <span class="chip-icon">🎵</span>
+            <span>${escapeHtml(t.name)}</span>
+            <span class="chip-meta">${escapeHtml(t.description || '')}</span>
+            <span class="play-btn" onclick="event.stopPropagation(); previewMusic('${t.id}')" title="Прослушать">
+                ${_musicPreviewId === t.id ? '⏸' : '▶'}
+            </span>
+        </div>`).join('');
+    el.innerHTML = noMusic + tracks;
+}
+
+function selectMusic(id) {
+    selectedMusicId = id;
+    stopMusicPreview();
+    renderMusicChips();
+}
+
+function previewMusic(id) {
+    const audio = $('#music-preview');
+    const t = musicTracks.find(x => x.id === id);
+    if (!audio || !t) return;
+    if (_musicPreviewId === id) {
+        stopMusicPreview();
+        return;
+    }
+    audio.src = t.url;
+    audio.volume = 0.65;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+    _musicPreviewId = id;
+    audio.onended = () => { _musicPreviewId = ''; renderMusicChips(); };
+    renderMusicChips();
+}
+
+function stopMusicPreview() {
+    const audio = $('#music-preview');
+    if (audio) { try { audio.pause(); } catch(_){} audio.src = ''; }
+    _musicPreviewId = '';
+}
+
+function getSelectedMusic() {
+    return musicTracks.find(t => t.id === selectedMusicId) || null;
+}
+
+function renderTemplatePickers() {
+    renderAspectChips();
+    renderMusicChips();
+    const vg = $('#video-tpl-grid');
+    vg.innerHTML = videoTemplates.map(t => `
+        <div class="tpl-card ${t.id === selectedVideoTemplateId ? 'selected' : ''}" onclick="selectVideoTemplate('${t.id}')">
+            <div class="flex items-center justify-between mb-1">
+                <div class="text-sm font-semibold text-white">${escapeHtml(t.name)}</div>
+                <div class="w-3 h-3 rounded-full" style="background:${t.accentColor || '#6366f1'}"></div>
+            </div>
+            <p class="text-xs text-gray-500 mb-2">${escapeHtml(t.description || '')}</p>
+            <p class="text-xs text-gray-600">Кадр: ${t.secondsPerSlide}с • Переход: ${t.transition}</p>
+        </div>`).join('');
+    const tg = $('#text-tpl-grid');
+    tg.innerHTML = textTemplates.map(t => `
+        <div class="tpl-card ${t.id === selectedTextTemplateId ? 'selected' : ''}" onclick="selectTextTemplate('${t.id}')">
+            <div class="text-sm font-semibold text-white mb-1">${escapeHtml(t.name)}</div>
+            <p class="text-xs text-gray-500">${escapeHtml(t.description || '')}</p>
+        </div>`).join('');
+}
+
+function selectVideoTemplate(id) { selectedVideoTemplateId = id; renderTemplatePickers(); }
+function selectTextTemplate(id) { selectedTextTemplateId = id; renderTemplatePickers(); }
+
+function getSelectedVideoTemplate() {
+    return videoTemplates.find(t => t.id === selectedVideoTemplateId) || videoTemplates[0] || BUILTIN_VIDEO_TEMPLATES[0];
+}
+function getSelectedTextTemplate() {
+    return textTemplates.find(t => t.id === selectedTextTemplateId) || textTemplates[0] || BUILTIN_TEXT_TEMPLATES[0];
+}
+
+const BUILTIN_VIDEO_TEMPLATES = [{
+    id: 'premium', name: 'Премиум', description: 'Плавные длинные кадры',
+    secondsPerSlide: 3.0, transition: 'fade', transitionMs: 600, kenBurns: true,
+    captionStyle: { fontSize: 30, fontWeight: 600, color: '#fff', shadow: 'rgba(0,0,0,0.85)', background: '', padding: 0, position: 'bottom' },
+    accentColor: '#6366f1'
+}];
+const BUILTIN_TEXT_TEMPLATES = [{
+    id: 'selling-premium', name: 'Продающий', description: '',
+    system: 'Ты — копирайтер рекламы недвижимости. Пиши кратко и эмоционально.',
+    captionPrompt: 'Сгенерируй {n} подписей по квартире (по 5–8 слов). JSON-массив строк.\n\n{property}',
+    scriptPrompt: ''
+}];
 
 // ============================================================
 // PHOTO HANDLING
@@ -415,40 +1289,74 @@ function showErr(m) { photoError.textContent = m; photoError.classList.remove('h
 function hideErr()  { photoError.classList.add('hidden'); }
 
 // ============================================================
-// GEMINI API
+// LLM API (via /api/llm backend; falls back to client key against NVIDIA NIM)
 // ============================================================
-async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9) {
-    const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`;
-    const resp = await fetch(url, {
+async function llmFetch(prompt, key, maxTokens = 800, temperature = 0.9, system = null) {
+    // Try backend first
+    try {
+        const resp = await fetch('/api/llm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, system, maxOutputTokens: maxTokens, temperature })
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            return (data.text || '').trim();
+        }
+        // 500 with missing key → fall through to client-side
+        const errBody = await resp.json().catch(() => ({}));
+        if (resp.status === 500 && /API_KEY/.test(errBody.error || '')) {
+            // backend not configured — fallback if user provided a client key
+        } else {
+            throw new Error(errBody?.error || `HTTP ${resp.status}`);
+        }
+    } catch (e) {
+        if (!key) throw e; // no fallback possible
+        // network error — fall through to client call below
+    }
+
+    if (!key) throw new Error('LLM бэкенд не настроен и клиентский ключ не введён');
+
+    // Direct call to NVIDIA NIM (OpenAI-compatible). Used only when backend is
+    // unavailable AND user provided their own key in the field above.
+    const messages = [];
+    if (system) messages.push({ role: 'system', content: system });
+    messages.push({ role: 'user', content: prompt });
+    const resp = await fetch(LLM_FALLBACK_BASE, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-goog-api-key': key
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${key}`,
         },
         body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature, maxOutputTokens: maxTokens }
-        })
+            model: LLM_FALLBACK_MODEL,
+            messages,
+            temperature,
+            max_tokens: maxTokens,
+            top_p: 0.95,
+            stream: false,
+        }),
     });
     if (!resp.ok) {
         const e = await resp.json().catch(() => ({}));
-        throw new Error(e?.error?.message || `HTTP ${resp.status}`);
+        throw new Error(e?.error?.message || e?.detail || e?.title || `HTTP ${resp.status}`);
     }
     const data = await resp.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    return data?.choices?.[0]?.message?.content?.trim() || '';
 }
 
 async function testApiKey() {
     const key = $('#api-key').value.trim();
     const st = $('#api-status');
     const btn = $('#test-api-btn');
-    if (!key) { st.textContent = 'Введите API ключ'; st.className='mt-2 text-xs text-red-400'; st.classList.remove('hidden'); return; }
     btn.disabled = true; btn.textContent = '...';
     st.textContent = 'Проверка...'; st.className='mt-2 text-xs text-gray-400'; st.classList.remove('hidden');
     try {
-        await geminiFetch('Ответь одним словом: ок', key);
-        localStorage.setItem('gemini_api_key', key);
-        st.textContent = '✓ Ключ действителен'; st.className='mt-2 text-xs text-green-400';
+        const out = await llmFetch('Ответь одним словом: ок', key, 50, 0.2);
+        if (key) localStorage.setItem('llm_api_key', key);
+        st.textContent = '✓ LLM ответил: «' + (out || '...').slice(0, 30) + '»';
+        st.className='mt-2 text-xs text-green-400';
     } catch (e) {
         st.textContent = '✗ ' + e.message; st.className='mt-2 text-xs text-red-400';
     }
@@ -473,15 +1381,20 @@ function parseNumberedList(raw) {
 /* --- STEP 1: batch-generate all captions at once --- */
 async function generateBatchCaptions(key, name, price, area, district, features) {
     const n = photos.length;
+    const tpl = getSelectedTextTemplate();
+    const dbDescription = window.__dbDescription || '';
 
-    const prompt = `Ты — лучший копирайтер рекламы недвижимости в России. Пишешь для соцсетей и видео-презентаций.
-
-Объект: «${name}»
+    const propertyBlock = `Объект: «${name}»
 Цена: ${price}
 Площадь: ${area}
-Район: ${district}
-Преимущества: ${features}
-Количество фото: ${n}
+Район/адрес: ${district}
+Преимущества: ${features}${dbDescription ? '\n\nОписание из базы:\n' + dbDescription.slice(0, 1500) : ''}`;
+
+    const prompt = `${tpl.system || 'Ты — копирайтер рекламы недвижимости. Пиши кратко и эмоционально.'}
+
+Количество фото в видео: ${n}
+
+${propertyBlock}
 
 Задача: придумай ${n} подписей — по одной для каждого слайда видео-презентации.
 
@@ -509,15 +1422,17 @@ async function generateBatchCaptions(key, name, price, area, district, features)
 - Не начинай две подряд с одинаковой буквы/слова
 - Первая подпись — про первый контакт с объектом
 - Последняя подпись — призыв записаться на просмотр
+- ⛔ НЕ повторяй цену («${price}»), название объекта («${name}») и площадь («${area}») — они и так уже показаны на титульном слайде и на слайде с контактами; их повтор в подписях создаёт дублирование текста на экране во время переходов.
+- Пиши про детали и выгоды: ремонт, вид, свет, планировка, инфраструктура, отделка — НЕ про метраж/цену/имя.
 
 Формат ответа — ТОЛЬКО пронумерованный список, без пояснений:
 1. [подпись для слайда 1]
 2. [подпись для слайда 2]
 ...`;
 
-    setProgress(5, 'Gemini генерирует все подписи разом…');
+    setProgress(5, 'LLM генерирует все подписи разом…');
 
-    const raw = await geminiFetch(prompt, key, 1200, 1.0);
+    const raw = await llmFetch(prompt, key, 1200, 1.0);
     let captions = parseNumberedList(raw);
 
     // pad or trim to exact count
@@ -551,7 +1466,7 @@ ${list}
 2. [подпись]
 ...`;
 
-    const raw = await geminiFetch(prompt, key, 1200, 0.95);
+    const raw = await llmFetch(prompt, key, 1200, 0.95);
     const fixed = parseNumberedList(raw);
 
     if (fixed.length === captions.length) return fixed;
@@ -561,8 +1476,9 @@ ${list}
 
 /* --- MAIN ENTRY --- */
 async function generateCaptions() {
+    // Key is optional on the client — backend env can hold it instead.
+    // llmFetch() throws a clear error if neither backend nor client key is available.
     const key = $('#api-key').value.trim();
-    if (!key) throw new Error('Не указан API ключ Gemini');
 
     const name     = $('#prop-name').value.trim();
     const price    = $('#prop-price').value.trim();
@@ -571,7 +1487,7 @@ async function generateCaptions() {
     const features = $('#prop-features').value.trim();
 
     // STEP 1: batch generate
-    setProgress(3, 'Запрос к Gemini (batch)…');
+    setProgress(3, 'Запрос к LLM (batch)…');
     let captions = await generateBatchCaptions(key, name, price, area, district, features);
 
     setProgress(15, `Получено ${captions.length} подписей ✓`);
@@ -602,6 +1518,56 @@ function drawImageCover(ctx, img, x, y, w, h) {
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
+/* Pre-bake one cover-fit copy of a photo at canvas resolution. Keeping the
+ * baked canvas around lets the per-frame draw be a single GPU blit instead of
+ * a high-quality downscale every frame — critical for hitting 60 fps. */
+function bakeCover(img) {
+    const c = document.createElement('canvas');
+    c.width = CW; c.height = CH;
+    const cx = c.getContext('2d');
+    cx.imageSmoothingEnabled = true;
+    cx.imageSmoothingQuality = 'high';
+    drawImageCover(cx, img, 0, 0, CW, CH);
+    return c;
+}
+
+function bakePhotoCovers() {
+    for (const p of photos) {
+        if (!p.cover && p.img && p.img.complete && p.img.naturalWidth) {
+            try { p.cover = bakeCover(p.img); } catch (_) { /* tainted/decoding race — fallback to per-frame */ }
+        }
+    }
+}
+
+/* Draw text with a cheap stroke outline instead of a Gaussian shadow blur.
+ * shadowBlur on Canvas is ~10x slower than strokeText and was the main cause
+ * of dropped frames in the recording loop. */
+function drawTextWithStroke(ctx, text, x, y, maxW, lineHeight, fillColor) {
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    // Pull the font *size* (px), not the leading weight number. `parseInt`
+    // on `"600 30px Inter, …"` returns 600 → lineWidth=72 → a giant blob
+    // around every glyph. Match the px part explicitly.
+    const fpxMatch = String(ctx.font).match(/(\d+(?:\.\d+)?)px/);
+    const fpx = fpxMatch ? parseFloat(fpxMatch[1]) : 28;
+    ctx.lineWidth = Math.max(2, Math.min(6, fpx * 0.12));
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    const lines = wrapText(ctx, text, maxW);
+    const lh = lineHeight || 38;
+    const totalH = lines.length * lh;
+    let cy = y - totalH/2 + lh * 0.35;
+    for (const line of lines) {
+        ctx.strokeText(line, x, cy, maxW);
+        cy += lh;
+    }
+    cy = y - totalH/2 + lh * 0.35;
+    ctx.fillStyle = fillColor;
+    for (const line of lines) {
+        ctx.fillText(line, x, cy, maxW);
+        cy += lh;
+    }
+}
+
 /* Word-wrap text into lines */
 function wrapText(ctx, text, maxW) {
     const words = text.split(/\s+/);
@@ -620,24 +1586,32 @@ function wrapText(ctx, text, maxW) {
     return lines;
 }
 
-/* Draw centered text with shadow, supports multi-line */
+/* Draw centered text on top of a stroked outline. Replaces the old shadowBlur
+ * version: shadowBlur leaks a Gaussian halo around glyphs that's still ~30%
+ * dark even after ctx.restore() clears the cumulative state on some Canvas
+ * stacks (most visibly during a cross-fade when this slide is at alpha<1).
+ * Returns the actual rendered height in pixels so callers can stack
+ * subsequent text below without overlapping. */
 function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
+    const lh = lineHeight || 38;
+    const fill = ctx.fillStyle;
     ctx.save();
     ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0,0,0,0.85)';
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    const fpxMatch = String(ctx.font).match(/(\d+(?:\.\d+)?)px/);
+    const fpx = fpxMatch ? parseFloat(fpxMatch[1]) : 28;
+    ctx.lineWidth = Math.max(2, Math.min(6, fpx * 0.12));
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     const lines = wrapText(ctx, text, maxW);
-    const totalH = lines.length * (lineHeight || 38);
-    let cy = y - totalH/2 + (lineHeight || 38) * 0.35;
-
-    for (const line of lines) {
-        ctx.fillText(line, x, cy, maxW);
-        cy += (lineHeight || 38);
-    }
+    const totalH = lines.length * lh;
+    let cy = y - totalH/2 + lh * 0.35;
+    for (const line of lines) { ctx.strokeText(line, x, cy, maxW); cy += lh; }
+    cy = y - totalH/2 + lh * 0.35;
+    ctx.fillStyle = fill;
+    for (const line of lines) { ctx.fillText(line, x, cy, maxW); cy += lh; }
     ctx.restore();
+    return totalH;
 }
 
 /* Bottom gradient overlay */
@@ -654,7 +1628,8 @@ function drawBottomGrad(ctx, h) {
    SLIDE RENDERERS
    ============================================================ */
 
-function renderTitleSlide(ctx, alpha) {
+function renderTitleSlide(ctx, state) {
+    const { alpha = 1, offsetX = 0, zoom = 1, panX = 0, panY = 0 } = state || {};
     const name  = $('#prop-name').value.trim() || 'Объект недвижимости';
     const price = $('#prop-price').value.trim();
     const area  = $('#prop-area').value.trim();
@@ -662,9 +1637,17 @@ function renderTitleSlide(ctx, alpha) {
 
     ctx.save();
     ctx.globalAlpha = alpha;
+    if (offsetX) ctx.translate(offsetX, 0);
 
     if (photos.length) {
-        drawImageCover(ctx, photos[0].img, 0, 0, CW, CH);
+        ctx.save();
+        ctx.translate(CW/2 + panX, CH/2 + panY);
+        ctx.scale(zoom, zoom);
+        ctx.translate(-CW/2, -CH/2);
+        const p0 = photos[0];
+        if (p0.cover) ctx.drawImage(p0.cover, 0, 0);
+        else drawImageCover(ctx, p0.img, 0, 0, CW, CH);
+        ctx.restore();
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, CW, CH);
     } else {
@@ -675,67 +1658,132 @@ function renderTitleSlide(ctx, alpha) {
     }
 
     ctx.textAlign = 'center';
+    const s = fontScale();
+    const px = (n) => Math.round(n * s);
 
-    // Decorative accent
+    // Stack the three text blocks vertically and center the whole stack —
+    // this lets a long name (e.g. parsed from a Korter page title) wrap
+    // without crashing into the price line below.
+    const nameLh   = px(60);
+    const priceLh  = px(48);
+    const subLh    = px(28);
+    const blockGap = px(16);
+    const maxW     = CW - px(140);
+
+    ctx.font = `bold ${px(52)}px Inter, system-ui, sans-serif`;
+    const nameLines = wrapText(ctx, name, maxW);
+    const nameH = nameLines.length * nameLh;
+
+    const sub = [area, dist].filter(Boolean).join(' • ');
+    ctx.font = `400 ${px(20)}px Inter, system-ui, sans-serif`;
+    const subLines = sub ? wrapText(ctx, sub, maxW) : [];
+    const subH = subLines.length * subLh;
+
+    const priceH = price ? priceLh : 0;
+    const totalH = nameH + (priceH ? blockGap + priceH : 0) + (subH ? blockGap + subH : 0);
+    let cy = CH/2 - totalH/2;
+
+    // Decorative accent above the name
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-40, CH/2-145, 80, 4);
+    ctx.fillRect(CW/2 - px(40), cy - px(28), px(80), Math.max(3, px(4)));
 
     // Name
-    ctx.font = 'bold 52px Inter, system-ui, sans-serif';
+    ctx.font = `bold ${px(52)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, name, CW/2, CH/2 - 55, CW-140, 60);
+    drawCenteredText(ctx, name, CW/2, cy + nameH/2, maxW, nameLh);
+    cy += nameH;
 
     // Price
     if (price) {
-        ctx.font = '700 42px Inter, system-ui, sans-serif';
+        cy += blockGap;
+        ctx.font = `700 ${px(42)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2 + 25, CW-140, 48);
+        drawCenteredText(ctx, price, CW/2, cy + priceH/2, maxW, priceLh);
+        cy += priceH;
     }
 
     // Subline
-    const sub = [area, dist].filter(Boolean).join(' • ');
     if (sub) {
-        ctx.font = '400 20px Inter, system-ui, sans-serif';
+        cy += blockGap;
+        ctx.font = `400 ${px(20)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#94a3b8';
-        drawCenteredText(ctx, sub, CW/2, CH/2 + 90, CW-140, 28);
+        drawCenteredText(ctx, sub, CW/2, cy + subH/2, maxW, subLh);
     }
 
     ctx.restore();
 }
 
-function renderPhotoSlide(ctx, idx, alpha) {
+function renderPhotoSlide(ctx, idx, state) {
+    const { alpha = 1, offsetX = 0, zoom = 1, panX = 0, panY = 0 } = state || {};
     const photo   = photos[idx];
     const caption = captions[idx] || `Фото ${idx+1}`;
+    const tpl = getSelectedVideoTemplate();
+    const cs = tpl.captionStyle || {};
+    const s = fontScale();
+    const fontSize = Math.round((cs.fontSize || 30) * s);
+    const fontWeight = cs.fontWeight || 600;
+    const fontColor = cs.color || '#fff';
+    const padding = Math.round((cs.padding || 0) * s);
+    const bg = cs.background || '';
+    const position = cs.position || 'bottom';
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    drawImageCover(ctx, photo.img, 0, 0, CW, CH);
-    drawBottomGrad(ctx, 200);
+    if (offsetX) ctx.translate(offsetX, 0);
 
-    // Caption
-    ctx.font = '600 30px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, caption, CW/2, CH-85, CW-120, 38);
+    // Photo with Ken Burns transform (image only — caption stays put).
+    ctx.save();
+    ctx.translate(CW/2 + panX, CH/2 + panY);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-CW/2, -CH/2);
+    if (photo.cover) ctx.drawImage(photo.cover, 0, 0);
+    else drawImageCover(ctx, photo.img, 0, 0, CW, CH);
+    ctx.restore();
+
+    const sidePad = Math.round(80 * s);          // outer side padding
+    const captionMaxW = CW - sidePad * 2;
+    if (position !== 'center') drawBottomGrad(ctx, Math.round(220 * s));
+
+    // Compute caption box
+    ctx.font = `${fontWeight} ${fontSize}px Inter, system-ui, sans-serif`;
+    const lines = wrapText(ctx, caption, captionMaxW);
+    const lineH = Math.round(fontSize * 1.25);
+    const blockH = lines.length * lineH + padding * 2;
+    const cy = position === 'center' ? CH/2 : (CH - Math.round(60 * s) - blockH/2);
+
+    if (bg) {
+        ctx.fillStyle = bg;
+        const w = CW - Math.round(40 * s) * 2;
+        ctx.fillRect((CW - w)/2, cy - blockH/2, w, blockH);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    drawTextWithStroke(ctx, caption, CW/2, cy, captionMaxW, lineH, fontColor);
 
     // Counter
     ctx.textAlign = 'center';
-    ctx.font = '400 15px Inter, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH-28);
+    ctx.font = `400 ${Math.round(15 * s)}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText(`${idx+1} / ${photos.length}`, CW/2, CH - Math.round(28 * s));
 
     ctx.restore();
 }
 
-function renderContactSlide(ctx, alpha) {
+function renderContactSlide(ctx, state) {
+    const { alpha = 1, offsetX = 0 } = state || {};
     const contacts = $('#contact-info').value.trim() || 'Контактная информация';
     const name  = $('#prop-name').value.trim();
     const price = $('#prop-price').value.trim();
 
     ctx.save();
     ctx.globalAlpha = alpha;
+    if (offsetX) ctx.translate(offsetX, 0);
 
     if (photos.length) {
-        drawImageCover(ctx, photos[photos.length-1].img, 0, 0, CW, CH);
+        const last = photos[photos.length-1];
+        if (last.cover) ctx.drawImage(last.cover, 0, 0);
+        else drawImageCover(ctx, last.img, 0, 0, CW, CH);
         ctx.fillStyle = 'rgba(0,0,0,0.75)';
         ctx.fillRect(0,0,CW,CH);
     } else {
@@ -746,32 +1794,76 @@ function renderContactSlide(ctx, alpha) {
     }
 
     ctx.textAlign = 'center';
+    const cs = fontScale();
+    const cpx = (n) => Math.round(n * cs);
 
-    ctx.font = 'bold 44px Inter, system-ui, sans-serif';
+    // Same vertical-stack approach as renderTitleSlide so long names / multi-
+    // line contacts don't overlap the next block.
+    const maxW    = CW - cpx(140);
+    const headLh  = cpx(52);
+    const nameLh  = cpx(30);
+    const priceLh = cpx(34);
+    const lineLh  = cpx(28);
+    const gap     = cpx(14);
+
+    const head = 'Свяжитесь с нами!';
+    ctx.font = `bold ${cpx(44)}px Inter, system-ui, sans-serif`;
+    const headLines = wrapText(ctx, head, maxW);
+    const headH = headLines.length * headLh;
+
+    ctx.font = `500 ${cpx(22)}px Inter, system-ui, sans-serif`;
+    const nameLines = name ? wrapText(ctx, name, maxW) : [];
+    const nameH = nameLines.length * nameLh;
+
+    const priceH = price ? priceLh : 0;
+
+    ctx.font = `500 ${cpx(20)}px Inter, system-ui, sans-serif`;
+    const contactSegs = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
+    const contactWrapped = contactSegs.map(seg => wrapText(ctx, seg, maxW));
+    const contactsH = contactWrapped.reduce((a, lines) => a + lines.length * lineLh, 0);
+
+    const totalH = headH
+        + (nameH    ? gap + nameH    : 0)
+        + (priceH   ? gap + priceH   : 0)
+        + (contactsH ? gap + contactsH : 0);
+    let cy = CH/2 - totalH/2;
+
+    // Heading
+    ctx.font = `bold ${cpx(44)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2-100, CW-140, 52);
+    drawCenteredText(ctx, head, CW/2, cy + headH/2, maxW, headLh);
+    cy += headH;
 
+    // Accent below heading
+    cy += cpx(6);
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-30, CH/2-60, 60, 3);
+    ctx.fillRect(CW/2 - cpx(30), cy, cpx(60), Math.max(2, cpx(3)));
+    cy += cpx(8);
 
     if (name) {
-        ctx.font = '500 22px Inter, system-ui, sans-serif';
+        cy += gap;
+        ctx.font = `500 ${cpx(22)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#c7d2fe';
-        drawCenteredText(ctx, name, CW/2, CH/2-15, CW-140, 30);
+        drawCenteredText(ctx, name, CW/2, cy + nameH/2, maxW, nameLh);
+        cy += nameH;
     }
     if (price) {
-        ctx.font = '700 28px Inter, system-ui, sans-serif';
+        cy += gap;
+        ctx.font = `700 ${cpx(28)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2+30, CW-140, 34);
+        drawCenteredText(ctx, price, CW/2, cy + priceH/2, maxW, priceLh);
+        cy += priceH;
     }
-
-    // Contact lines
-    ctx.font = '500 20px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#e2e8f0';
-    const lines = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
-    lines.forEach((l,i) => {
-        drawCenteredText(ctx, l, CW/2, CH/2+95+i*34, CW-140, 28);
-    });
+    if (contactsH) {
+        cy += gap;
+        ctx.font = `500 ${cpx(20)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#e2e8f0';
+        contactSegs.forEach((seg, i) => {
+            const segH = contactWrapped[i].length * lineLh;
+            drawCenteredText(ctx, seg, CW/2, cy + segH/2, maxW, lineLh);
+            cy += segH;
+        });
+    }
 
     ctx.restore();
 }
@@ -779,33 +1871,234 @@ function renderContactSlide(ctx, alpha) {
 // ============================================================
 // BUILD SLIDES DATA
 // ============================================================
+
+/* Ken Burns randomization: each slide gets a small zoom + pan vector that
+ * the renderer animates over slide.ownProgress (0..1). Direction alternates
+ * so neighbouring slides don't all zoom the same way. */
+function makeKenBurns(i, enabled) {
+    if (!enabled) return { zoomFrom: 1, zoomTo: 1, panFromX: 0, panFromY: 0, panToX: 0, panToY: 0 };
+    const dir = i % 4;                    // four-way cycle
+    const zoomIn = i % 2 === 0;           // alternate zoom-in / zoom-out
+    const zoomFrom = zoomIn ? 1.0  : 1.08;
+    const zoomTo   = zoomIn ? 1.08 : 1.0;
+    // Pan magnitude tracks canvas size so the drift looks the same at
+    // 720p horizontal vs 1280p vertical.
+    const pan = Math.round(28 * Math.min(CW, CH) / 720);
+    const dx = (dir === 0 ? -pan : dir === 1 ? pan : 0);
+    const dy = (dir === 2 ? -pan : dir === 3 ? pan : 0);
+    return {
+        zoomFrom, zoomTo,
+        panFromX: -dx/2, panFromY: -dy/2,
+        panToX:    dx/2, panToY:    dy/2,
+    };
+}
+
 function buildSlides() {
+    const tpl = getSelectedVideoTemplate();
+    const kb = !!tpl.kenBurns;
     const slides = [];
-    slides.push({ type:'title', render: renderTitleSlide });
+    slides.push({
+        type:'title',
+        render: (c, st) => renderTitleSlide(c, st),
+        kb: makeKenBurns(0, kb),
+    });
     for (let i = 0; i < photos.length; i++) {
-        slides.push({ type:'photo', idx: i, render: (c,a) => renderPhotoSlide(c,i,a) });
+        slides.push({
+            type:'photo', idx: i,
+            render: (c, st) => renderPhotoSlide(c, i, st),
+            kb: makeKenBurns(i+1, kb),
+        });
     }
-    slides.push({ type:'contact', render: renderContactSlide });
+    slides.push({
+        type:'contact',
+        render: (c, st) => renderContactSlide(c, st),
+        kb: makeKenBurns(photos.length+1, false),
+    });
     return slides;
 }
 
 // ============================================================
 // VIDEO RECORDING (Canvas → MediaRecorder)
 // ============================================================
-function recordVideo(canvas, ctx, slides) {
-    return new Promise((resolve, reject) => {
-        const totalDur = slides.length * SLIDE_DUR - (slides.length - 1) * FADE_DUR;
-        const stream = canvas.captureStream(30);
+/* Ease-in-out for transitions / Ken Burns — much smoother than linear. */
+function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
 
-        const mimes = [
-            'video/webm;codecs=vp9',
-            'video/webm;codecs=vp8',
-            'video/webm'
-        ];
+/* Compute per-slide rendering state at absolute time t (seconds since the
+ * start of the video). Returns null when the slide is not on screen. */
+function slideStateAt(slide, sStart, slideDur, t, transition, tDur) {
+    const sEnd = sStart + slideDur;
+    if (t < sStart - 0.02 || t >= sEnd + 0.02) return null;
+
+    const own = clamp01((t - sStart) / slideDur);
+    const eOwn = easeInOut(own);
+    const kb = slide.kb || {};
+    const zoom = (kb.zoomFrom ?? 1) + ((kb.zoomTo ?? 1) - (kb.zoomFrom ?? 1)) * eOwn;
+    const panX = (kb.panFromX ?? 0) + ((kb.panToX ?? 0) - (kb.panFromX ?? 0)) * eOwn;
+    const panY = (kb.panFromY ?? 0) + ((kb.panToY ?? 0) - (kb.panFromY ?? 0)) * eOwn;
+
+    let alpha = 1, offsetX = 0;
+
+    if (transition === 'fade') {
+        if (t < sStart + tDur) alpha = easeInOut(clamp01((t - sStart) / tDur));
+        if (t > sEnd - tDur)   alpha = easeInOut(clamp01((sEnd - t)   / tDur));
+    } else if (transition === 'slide') {
+        if (t < sStart + tDur) {
+            const p = easeInOut(clamp01((t - sStart) / tDur));
+            offsetX = (1 - p) * CW;
+        }
+        if (t > sEnd - tDur) {
+            const p = easeInOut(clamp01((sEnd - t) / tDur));
+            offsetX = -(1 - p) * CW;
+        }
+    }
+    return { alpha, offsetX, zoom, panX, panY };
+}
+
+/* Compute timing parameters from the selected template. */
+function computeTiming(slides) {
+    const tpl = getSelectedVideoTemplate();
+    const transition = (tpl.transition || 'fade').toLowerCase();
+    const tDur = clamp01(((tpl.transitionMs ?? 600) / 1000) / Math.max(currentSlideDur, 0.5))
+                 * Math.max(currentSlideDur, 0.5);
+    const overlap = (transition === 'cut') ? 0 : tDur;
+    const slideDur = currentSlideDur;
+    const step = slideDur - overlap;
+    const totalDur = slides.length * slideDur - (slides.length - 1) * overlap;
+    return { tpl, transition, tDur, overlap, slideDur, step, totalDur };
+}
+
+/* Render one composite frame at virtual time t. */
+function renderFrameAt(ctx, slides, t, timing) {
+    ctx.clearRect(0, 0, CW, CH);
+    for (let i = 0; i < slides.length; i++) {
+        const sStart = i * timing.step;
+        const st = slideStateAt(slides[i], sStart, timing.slideDur, t, timing.transition, timing.tDur);
+        if (st) slides[i].render(ctx, st);
+    }
+}
+
+/* Encode a slideshow with WebCodecs (frame-perfect 60 fps, decoupled from
+ * paint rate). Returns null if WebCodecs / a webm muxer aren't available so
+ * the caller can fall back to MediaRecorder. */
+async function recordVideoWebCodecs(canvas, ctx, slides) {
+    if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') return null;
+
+    // Prefer H.264/mp4 output: the server only has to remux (no re-encode)
+    // to add the music track, which is much cheaper on RAM/disk and fits
+    // within the Vercel Hobby function limits for 1080p/60s/60fps. Fall back
+    // to VP9/webm if H.264 isn't supported in this browser.
+    const h264Candidates = ['avc1.640028', 'avc1.4D4028', 'avc1.4D401F', 'avc1.42E01F'];
+    const vp9Codec = 'vp09.00.10.08';
+
+    let pickedCodec = null;
+    for (const c of h264Candidates) {
+        const ok = await VideoEncoder.isConfigSupported({
+            codec: c, width: CW, height: CH, bitrate: RECORD_BITRATE, framerate: RECORD_FPS,
+            avc: { format: 'avc' },
+        }).catch(() => null);
+        if (ok && ok.supported) { pickedCodec = { codec: c, container: 'mp4' }; break; }
+    }
+    if (!pickedCodec) {
+        const ok = await VideoEncoder.isConfigSupported({
+            codec: vp9Codec, width: CW, height: CH, bitrate: RECORD_BITRATE, framerate: RECORD_FPS,
+        }).catch(() => null);
+        if (ok && ok.supported) pickedCodec = { codec: vp9Codec, container: 'webm' };
+    }
+    if (!pickedCodec) return null;
+
+    let Muxer, ArrayBufferTarget;
+    try {
+        const url = pickedCodec.container === 'mp4'
+            ? 'https://cdn.jsdelivr.net/npm/mp4-muxer@5/build/mp4-muxer.mjs'
+            : 'https://cdn.jsdelivr.net/npm/webm-muxer@5/build/webm-muxer.mjs';
+        const mod = await import(url);
+        Muxer = mod.Muxer; ArrayBufferTarget = mod.ArrayBufferTarget;
+    } catch (e) {
+        console.warn('muxer load failed, falling back to MediaRecorder:', e);
+        return null;
+    }
+
+    const timing = computeTiming(slides);
+    const totalFrames = Math.max(1, Math.ceil(timing.totalDur * RECORD_FPS));
+    const usPerFrame = Math.round(1_000_000 / RECORD_FPS);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const target = new ArrayBufferTarget();
+    const muxer = new Muxer(
+        pickedCodec.container === 'mp4'
+            ? {
+                  target,
+                  video: { codec: 'avc', width: CW, height: CH, frameRate: RECORD_FPS },
+                  fastStart: 'in-memory',
+              }
+            : {
+                  target,
+                  video: { codec: 'V_VP9', width: CW, height: CH, frameRate: RECORD_FPS },
+              }
+    );
+
+    let muxerErr = null;
+    const encoder = new VideoEncoder({
+        output: (chunk, meta) => {
+            try { muxer.addVideoChunk(chunk, meta); } catch (e) { muxerErr = e; }
+        },
+        error: (e) => { muxerErr = e; },
+    });
+    const encoderCfg = {
+        codec: pickedCodec.codec, width: CW, height: CH,
+        bitrate: RECORD_BITRATE, framerate: RECORD_FPS,
+        latencyMode: 'realtime',
+    };
+    if (pickedCodec.container === 'mp4') encoderCfg.avc = { format: 'avc' };
+    encoder.configure(encoderCfg);
+
+    for (let i = 0; i < totalFrames; i++) {
+        if (muxerErr) throw muxerErr;
+        const t = i / RECORD_FPS;
+        renderFrameAt(ctx, slides, t, timing);
+
+        const frame = new VideoFrame(canvas, {
+            timestamp: i * usPerFrame,
+            duration: usPerFrame,
+        });
+        while (encoder.encodeQueueSize > 6) {
+            await new Promise(r => setTimeout(r, 4));
+        }
+        encoder.encode(frame, { keyFrame: i % 60 === 0 });
+        frame.close();
+
+        if (i % 30 === 0) {
+            const pct = 25 + Math.round((i / totalFrames) * 63);
+            setProgress(pct, `Кодирование: ${i}/${totalFrames} кадров (60 fps)`);
+            await new Promise(r => setTimeout(r, 0));
+        }
+    }
+
+    await encoder.flush();
+    encoder.close();
+    if (muxerErr) throw muxerErr;
+    muxer.finalize();
+    const mime = pickedCodec.container === 'mp4' ? 'video/mp4' : 'video/webm';
+    return new Blob([target.buffer], { type: mime });
+}
+
+/* Legacy path: MediaRecorder + canvas.captureStream. Used as a fallback when
+ * WebCodecs isn't available. Real fps caps at the canvas paint rate. */
+function recordVideoMediaRecorder(canvas, ctx, slides) {
+    return new Promise((resolve, reject) => {
+        const timing = computeTiming(slides);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        const stream = canvas.captureStream(RECORD_FPS);
+        const mimes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
         const mime = mimes.find(m => MediaRecorder.isTypeSupported(m));
         if (!mime) return reject(new Error('Браузер не поддерживает запись видео'));
 
-        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5_000_000 });
+        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: RECORD_BITRATE });
         const chunks = [];
         rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
         rec.onstop = () => resolve(new Blob(chunks, { type: mime }));
@@ -816,59 +2109,112 @@ function recordVideo(canvas, ctx, slides) {
 
         function frame(now) {
             const t = (now - t0) / 1000;
-            if (t >= totalDur + 0.3) { rec.stop(); return; }
-
-            setProgress(25 + Math.round(Math.min(t/totalDur,1)*63),
-                        `Запись: ${Math.min(t, totalDur).toFixed(1)}с / ${totalDur.toFixed(1)}с`);
-
-            ctx.clearRect(0,0,CW,CH);
-
-            for (let i = 0; i < slides.length; i++) {
-                const sStart = i * (SLIDE_DUR - FADE_DUR);
-                const sEnd   = sStart + SLIDE_DUR;
-                if (t >= sStart - 0.02 && t < sEnd + 0.02) {
-                    let alpha = 1;
-                    if (t < sStart + FADE_DUR) alpha = clamp01((t - sStart) / FADE_DUR);
-                    if (t > sEnd   - FADE_DUR) alpha = clamp01((sEnd - t)   / FADE_DUR);
-                    slides[i].render(ctx, alpha);
-                }
-            }
+            if (t >= timing.totalDur + 0.3) { rec.stop(); return; }
+            setProgress(25 + Math.round(Math.min(t/timing.totalDur,1)*63),
+                        `Запись: ${Math.min(t, timing.totalDur).toFixed(1)}с / ${timing.totalDur.toFixed(1)}с`);
+            renderFrameAt(ctx, slides, t, timing);
             requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
     });
 }
 
+async function recordVideo(canvas, ctx, slides) {
+    // Prefer WebCodecs: render at virtual time, encoder produces exactly
+    // 60 fps regardless of how slow the canvas paint pipeline is.
+    try {
+        const blob = await recordVideoWebCodecs(canvas, ctx, slides);
+        if (blob) return blob;
+    } catch (e) {
+        console.warn('WebCodecs path failed, falling back to MediaRecorder:', e);
+    }
+    return recordVideoMediaRecorder(canvas, ctx, slides);
+}
+
 // ============================================================
 // MP4 CONVERSION (FFmpeg.wasm — optional)
 // ============================================================
-async function convertToMP4(webmBlob) {
+async function convertToMP4(webmBlob, opts) {
+    opts = opts || {};
+    const musicTrack = opts.musicTrack || null;
+
+    // Production path: upload directly to Vercel Blob (no 4.5 MB limit),
+    // then call /api/mux with the URL. Falls back to multipart for local dev.
+    try {
+        setProgress(91, 'Загрузка видео на сервер…');
+        const ext = (webmBlob.type || '').includes('mp4') ? 'mp4' : 'webm';
+        const filename = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { upload } = await import('https://esm.sh/@vercel/blob@0.23.4/client');
+        const uploaded = await upload(filename, webmBlob, {
+            access: 'public',
+            handleUploadUrl: '/api/blob-upload',
+            contentType: webmBlob.type || (ext === 'mp4' ? 'video/mp4' : 'video/webm'),
+            onUploadProgress: ({ percentage }) => {
+                setProgress(91 + Math.round(percentage * 0.03), `Загрузка ${percentage}%…`);
+            },
+        });
+        setProgress(95, musicTrack ? 'Монтаж на сервере (MP4 + музыка)…' : 'Монтаж на сервере (MP4)…');
+        const r = await fetch('/api/mux', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                videoUrl: uploaded.url,
+                musicId: musicTrack && musicTrack.id ? musicTrack.id : '',
+            }),
+        });
+        if (r.ok) {
+            const j = await r.json();
+            setProgress(99, 'Скачивание готового MP4…');
+            const mp4r = await fetch(j.url);
+            if (!mp4r.ok) throw new Error(`download mp4: HTTP ${mp4r.status}`);
+            return await mp4r.blob();
+        }
+        console.warn('Server mux (blob) failed:', r.status, await r.text().catch(()=>''));
+    } catch (e) {
+        console.warn('Blob-mux path failed, trying legacy multipart:', e);
+    }
+
+    // Legacy multipart path (dev server without Blob configured).
+    try {
+        setProgress(91, musicTrack ? 'Конвертация в MP4 + музыка (legacy)…' : 'Конвертация в MP4 (legacy)…');
+        const fd = new FormData();
+        const ext = (webmBlob.type || '').includes('mp4') ? 'mp4' : 'webm';
+        fd.append('video', webmBlob, `in.${ext}`);
+        if (musicTrack && musicTrack.id) fd.append('musicId', musicTrack.id);
+        const r = await fetch('/api/mux', { method: 'POST', body: fd });
+        if (r.ok) return await r.blob();
+        console.warn('Legacy server mux failed:', r.status, await r.text().catch(()=>''));
+    } catch (e) {
+        console.warn('Server mux unreachable, trying ffmpeg.wasm fallback:', e);
+    }
+
+    // Fallback: ffmpeg.wasm in the browser (no audio — single-thread is too
+    // slow to handle audio at acceptable speed).
     if (typeof SharedArrayBuffer === 'undefined') {
         setProgress(92, 'SharedArrayBuffer недоступен → сохраняем WebM');
         await delay(1200);
         return null;
     }
     try {
-        setProgress(91, 'Загрузка FFmpeg.wasm…');
-        const { FFmpeg }    = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
-        const { fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js');
+        setProgress(92, 'Конвертация WebM → MP4 (запасной путь)…');
+        const { FFmpeg }    = await import('/ffmpeg/ffmpeg/index.js');
+        const { fetchFile } = await import('/ffmpeg/util/index.js');
         const ffmpeg = new FFmpeg();
         ffmpeg.on('progress', ({ progress: p }) => {
-            setProgress(91 + Math.round(Math.min(p,1)*7), `MP4: ${Math.round(p*100)}%`);
+            setProgress(92 + Math.round(Math.min(p,1)*5), `MP4: ${Math.round(p*100)}%`);
         });
         await ffmpeg.load({
-            coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
-            wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm'
+            coreURL: '/ffmpeg/core/ffmpeg-core.js',
+            wasmURL: '/ffmpeg/core/ffmpeg-core.wasm'
         });
-        setProgress(93, 'Конвертация WebM → MP4…');
         await ffmpeg.writeFile('in.webm', await fetchFile(webmBlob));
-        await ffmpeg.exec(['-i','in.webm','-c:v','libx264','-preset','fast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
+        await ffmpeg.exec(['-i','in.webm','-c:v','libx264','-preset','ultrafast','-crf','24','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);
         const data = await ffmpeg.readFile('out.mp4');
-        await ffmpeg.deleteFile('in.webm');
-        await ffmpeg.deleteFile('out.mp4');
+        try { await ffmpeg.deleteFile('in.webm'); } catch(_){}
+        try { await ffmpeg.deleteFile('out.mp4'); } catch(_){}
         return new Blob([data.buffer], { type:'video/mp4' });
     } catch (e) {
-        console.warn('FFmpeg failed:', e);
+        console.warn('FFmpeg.wasm fallback failed:', e);
         setProgress(96, 'MP4 не удался → сохраняем WebM');
         await delay(1200);
         return null;
@@ -886,8 +2232,10 @@ async function startGeneration() {
     if (photos.length > 20) errs.push('Максимум 20 фото');
     if (!$('#prop-name').value.trim())  errs.push('Укажите название');
     if (!$('#prop-price').value.trim()) errs.push('Укажите цену');
-    if (!$('#api-key').value.trim())    errs.push('Укажите API ключ Gemini');
     if (errs.length) { alert(errs.join('\n')); return; }
+
+    // API key requirement: only client-side if backend not available
+    // (we don't gate here — llmFetch will throw a clear error if neither is set)
 
     isGenerating = true;
     genBtn.disabled = true;
@@ -897,6 +2245,10 @@ async function startGeneration() {
     videoBlob = null;
     resetSteps();
     progressSec.scrollIntoView({ behavior:'smooth', block:'center' });
+
+    // Apply selected video template
+    const tplV = getSelectedVideoTemplate();
+    currentSlideDur = (tplV && tplV.secondsPerSlide) ? tplV.secondsPerSlide : 3.0;
 
     try {
         // 1) Captions
@@ -909,6 +2261,8 @@ async function startGeneration() {
         setProgress(20, 'Подготовка слайдов…');
         const slides = buildSlides();
         slidesSnapshot = slides;
+        // Pre-rasterise photos at canvas size so the recorder can hit 60 fps.
+        bakePhotoCovers();
         await delay(150);
         setDone(2);
 
@@ -924,7 +2278,7 @@ async function startGeneration() {
         // 4) MP4
         setActive(4);
         setProgress(90, 'Конвертация…');
-        const mp4 = await convertToMP4(videoBlob);
+        const mp4 = await convertToMP4(videoBlob, { musicTrack: getSelectedMusic() });
         if (mp4) videoBlob = mp4;
         setDone(4);
 
@@ -955,26 +2309,26 @@ async function startGeneration() {
 function setupPreview(slides) {
     const pc  = previewCanvas;
     const pctx = pc.getContext('2d');
-    slides[0].render(pctx, 1);
+    slides[0].render(pctx, { alpha: 1 });
 
     let playing = false;
     pc.style.cursor = 'pointer';
     pc.onclick = () => {
         if (playing) return;
         playing = true;
-        const dur = slides.length * SLIDE_DUR - (slides.length-1) * FADE_DUR;
+        const dur = slides.length * currentSlideDur - (slides.length-1) * FADE_DUR;
         const t0 = performance.now();
         function tick(now) {
             const t = (now - t0)/1000;
-            if (t >= dur) { playing = false; slides[slides.length-1].render(pctx,1); return; }
+            if (t >= dur) { playing = false; slides[slides.length-1].render(pctx, { alpha: 1 }); return; }
             pctx.clearRect(0,0,CW,CH);
             for (let i=0;i<slides.length;i++) {
-                const s = i*(SLIDE_DUR-FADE_DUR), e = s+SLIDE_DUR;
+                const s = i*(currentSlideDur-FADE_DUR), e = s+currentSlideDur;
                 if (t >= s-0.02 && t < e+0.02) {
                     let a = 1;
                     if (t < s+FADE_DUR) a = clamp01((t-s)/FADE_DUR);
                     if (t > e-FADE_DUR) a = clamp01((e-t)/FADE_DUR);
-                    slides[i].render(pctx, a);
+                    slides[i].render(pctx, { alpha: a });
                 }
             }
             requestAnimationFrame(tick);

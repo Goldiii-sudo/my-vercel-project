@@ -1,0 +1,78 @@
+[
+  {
+    "id": "premium",
+    "name": "Премиум",
+    "description": "Длинные плавные кадры, мягкие переходы — премиальный вид.",
+    "secondsPerSlide": 4.5,
+    "transition": "fade",
+    "transitionMs": 800,
+    "kenBurns": true,
+    "captionStyle": {
+      "fontSize": 36,
+      "fontWeight": 700,
+      "color": "#ffffff",
+      "shadow": "rgba(0,0,0,0.65)",
+      "background": "rgba(15,23,42,0.55)",
+      "padding": 24,
+      "position": "bottom"
+    },
+    "accentColor": "#a855f7"
+  },
+  {
+    "id": "dynamic",
+    "name": "Динамичный",
+    "description": "Быстрые кадры, резкие переходы — для соцсетей.",
+    "secondsPerSlide": 2.2,
+    "transition": "slide",
+    "transitionMs": 350,
+    "kenBurns": true,
+    "captionStyle": {
+      "fontSize": 42,
+      "fontWeight": 800,
+      "color": "#ffffff",
+      "shadow": "rgba(0,0,0,0.8)",
+      "background": "rgba(99,102,241,0.7)",
+      "padding": 18,
+      "position": "center"
+    },
+    "accentColor": "#6366f1"
+  },
+  {
+    "id": "minimal",
+    "name": "Минимализм",
+    "description": "Без эффектов, спокойные кадры, тонкая типографика.",
+    "secondsPerSlide": 3.0,
+    "transition": "cut",
+    "transitionMs": 0,
+    "kenBurns": false,
+    "captionStyle": {
+      "fontSize": 28,
+      "fontWeight": 500,
+      "color": "#ffffff",
+      "shadow": "rgba(0,0,0,0.5)",
+      "background": "rgba(0,0,0,0.35)",
+      "padding": 16,
+      "position": "bottom"
+    },
+    "accentColor": "#9ca3af"
+  },
+  {
+    "id": "rental",
+    "name": "Аренда / посуточно",
+    "description": "Тёплые акценты, бытовые сцены на первом плане.",
+    "secondsPerSlide": 3.2,
+    "transition": "fade",
+    "transitionMs": 500,
+    "kenBurns": true,
+    "captionStyle": {
+      "fontSize": 32,
+      "fontWeight": 700,
+      "color": "#ffffff",
+      "shadow": "rgba(0,0,0,0.7)",
+      "background": "rgba(244,63,94,0.55)",
+      "padding": 20,
+      "position": "bottom"
+    },
+    "accentColor": "#f43f5e"
+  }
+]

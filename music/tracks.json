@@ -1,0 +1,37 @@
+[
+  {
+    "id": "cinematic",
+    "name": "Кинематографичный",
+    "description": "Тёплое настроение, медленные смены — Premium / Аренда",
+    "url": "/music/cinematic.mp3",
+    "vibe": "cinematic"
+  },
+  {
+    "id": "ambient",
+    "name": "Эмбиент",
+    "description": "Лёгкий, ненавязчивый — Минимализм",
+    "url": "/music/ambient.mp3",
+    "vibe": "ambient"
+  },
+  {
+    "id": "corporate",
+    "name": "Корпоратив",
+    "description": "Чистый, деловой — для бизнес-объектов",
+    "url": "/music/corporate.mp3",
+    "vibe": "corporate"
+  },
+  {
+    "id": "lofi",
+    "name": "Lo-Fi",
+    "description": "Расслабленный, городской — посуточная аренда",
+    "url": "/music/lofi.mp3",
+    "vibe": "lofi"
+  },
+  {
+    "id": "hiphop",
+    "name": "Хип-хоп",
+    "description": "Динамичный, ритмичный — Reels/TikTok",
+    "url": "/music/hiphop.mp3",
+    "vibe": "energetic"
+  }
+]

@@ -1,16 +1,44 @@
 {
-  "name": "reelestate-video-generator",
   "version": 2,
-  "builds": [
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ],
+  "headers": [
     {
-      "src": "index.html",
-      "use": "@vercel/static"
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" }
+      ]
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+  "functions": {
+    "api/mux.js": {
+      "memory": 1024,
+      "maxDuration": 60,
+      "includeFiles": "{data,templates,music,node_modules/ffmpeg-static}/**"
+    },
+    "api/apartments.js": {
+      "memory": 256,
+      "maxDuration": 30,
+      "includeFiles": "data/**"
+    },
+    "api/templates.js": {
+      "memory": 256,
+      "maxDuration": 30,
+      "includeFiles": "templates/**"
+    },
+    "api/llm.js": {
+      "memory": 256,
+      "maxDuration": 30
+    },
+    "api/blob-upload.js": {
+      "memory": 256,
+      "maxDuration": 30
+    },
+    "api/photo.js": {
+      "memory": 256,
+      "maxDuration": 15
     }
-  ]
+  }
 }
