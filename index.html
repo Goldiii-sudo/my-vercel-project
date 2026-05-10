@@ -998,9 +998,28 @@ function renderGalleryStrip() {
     `).join('');
 }
 
+function shortNameFromTitle(apt) {
+    // Korter titles are full sentences ("Продается студия квартира площадью
+    // 34.5 м² в Батуми, Oval. Цена — $71,000") — too long for a title slide
+    // and they re-encode the price, which already shows on the next line.
+    // Reduce to "<kind> в <project>" (or "<kind> N м²" when there's no
+    // project). Fall back to the raw title for unexpected formats.
+    const t = (apt.title || '').trim();
+    const re = /^(?:Продается|Сдается(?:\s+в\s+аренду)?)\s+([^,]+?)\s+(?:квартира|апартамент\S*)\s+площадью\s+[\d.,]+\s*м²\s+в\s+Батуми,\s*(.+?)(?:\.\s*Цена.*)?$/i;
+    const m = t.match(re);
+    if (!m) return t.replace(/\.\s*Цена.*$/i, '').replace(/\.$/, '').trim();
+    const kind = m[1].trim();
+    let where = m[2].trim();
+    // Strip street-address fluff ("ул. ..." → keep nothing; project names stay)
+    if (/^ул\.|^улица|^просп|^пер\./i.test(where)) where = apt.district || '';
+    const pieces = [kind];
+    if (where) pieces.push('в ' + where);
+    return pieces.join(' ').replace(/\s+/g, ' ').trim();
+}
+
 async function applyApartmentToForm(apt) {
     // Fill property fields from DB record
-    $('#prop-name').value = (apt.title || '').replace(/\.$/, '').trim();
+    $('#prop-name').value = shortNameFromTitle(apt);
     $('#prop-price').value = apt.price ? `${apt.price.toLocaleString('ru-RU')} ${apt.currency || ''}` : '';
     $('#prop-area').value = apt.area ? `${apt.area} м²` : '';
     $('#prop-district').value = [apt.district, apt.address].filter(Boolean).join(', ');
@@ -1562,24 +1581,30 @@ function wrapText(ctx, text, maxW) {
     return lines;
 }
 
-/* Draw centered text with shadow, supports multi-line */
+/* Draw centered text on top of a stroked outline. Replaces the old shadowBlur
+ * version: shadowBlur leaks a Gaussian halo around glyphs that's still ~30%
+ * dark even after ctx.restore() clears the cumulative state on some Canvas
+ * stacks (most visibly during a cross-fade when this slide is at alpha<1).
+ * Returns the actual rendered height in pixels so callers can stack
+ * subsequent text below without overlapping. */
 function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
+    const lh = lineHeight || 38;
+    const fill = ctx.fillStyle;
     ctx.save();
     ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0,0,0,0.85)';
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    ctx.lineWidth = Math.max(3, parseInt(ctx.font, 10) * 0.12);
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     const lines = wrapText(ctx, text, maxW);
-    const totalH = lines.length * (lineHeight || 38);
-    let cy = y - totalH/2 + (lineHeight || 38) * 0.35;
-
-    for (const line of lines) {
-        ctx.fillText(line, x, cy, maxW);
-        cy += (lineHeight || 38);
-    }
+    const totalH = lines.length * lh;
+    let cy = y - totalH/2 + lh * 0.35;
+    for (const line of lines) { ctx.strokeText(line, x, cy, maxW); cy += lh; }
+    cy = y - totalH/2 + lh * 0.35;
+    ctx.fillStyle = fill;
+    for (const line of lines) { ctx.fillText(line, x, cy, maxW); cy += lh; }
     ctx.restore();
+    return totalH;
 }
 
 /* Bottom gradient overlay */
@@ -1629,28 +1654,53 @@ function renderTitleSlide(ctx, state) {
     const s = fontScale();
     const px = (n) => Math.round(n * s);
 
-    // Decorative accent
+    // Stack the three text blocks vertically and center the whole stack —
+    // this lets a long name (e.g. parsed from a Korter page title) wrap
+    // without crashing into the price line below.
+    const nameLh   = px(60);
+    const priceLh  = px(48);
+    const subLh    = px(28);
+    const blockGap = px(16);
+    const maxW     = CW - px(140);
+
+    ctx.font = `bold ${px(52)}px Inter, system-ui, sans-serif`;
+    const nameLines = wrapText(ctx, name, maxW);
+    const nameH = nameLines.length * nameLh;
+
+    const sub = [area, dist].filter(Boolean).join(' • ');
+    ctx.font = `400 ${px(20)}px Inter, system-ui, sans-serif`;
+    const subLines = sub ? wrapText(ctx, sub, maxW) : [];
+    const subH = subLines.length * subLh;
+
+    const priceH = price ? priceLh : 0;
+    const totalH = nameH + (priceH ? blockGap + priceH : 0) + (subH ? blockGap + subH : 0);
+    let cy = CH/2 - totalH/2;
+
+    // Decorative accent above the name
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2 - px(40), CH/2 - px(145), px(80), Math.max(3, px(4)));
+    ctx.fillRect(CW/2 - px(40), cy - px(28), px(80), Math.max(3, px(4)));
 
     // Name
     ctx.font = `bold ${px(52)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, name, CW/2, CH/2 - px(55), CW - px(140), px(60));
+    drawCenteredText(ctx, name, CW/2, cy + nameH/2, maxW, nameLh);
+    cy += nameH;
 
     // Price
     if (price) {
+        cy += blockGap;
         ctx.font = `700 ${px(42)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2 + px(25), CW - px(140), px(48));
+        drawCenteredText(ctx, price, CW/2, cy + priceH/2, maxW, priceLh);
+        cy += priceH;
     }
 
     // Subline
-    const sub = [area, dist].filter(Boolean).join(' • ');
     if (sub) {
+        cy += blockGap;
         ctx.font = `400 ${px(20)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#94a3b8';
-        drawCenteredText(ctx, sub, CW/2, CH/2 + px(90), CW - px(140), px(28));
+        drawCenteredText(ctx, sub, CW/2, cy + subH/2, maxW, subLh);
     }
 
     ctx.restore();
@@ -1740,31 +1790,73 @@ function renderContactSlide(ctx, state) {
     const cs = fontScale();
     const cpx = (n) => Math.round(n * cs);
 
+    // Same vertical-stack approach as renderTitleSlide so long names / multi-
+    // line contacts don't overlap the next block.
+    const maxW    = CW - cpx(140);
+    const headLh  = cpx(52);
+    const nameLh  = cpx(30);
+    const priceLh = cpx(34);
+    const lineLh  = cpx(28);
+    const gap     = cpx(14);
+
+    const head = 'Свяжитесь с нами!';
+    ctx.font = `bold ${cpx(44)}px Inter, system-ui, sans-serif`;
+    const headLines = wrapText(ctx, head, maxW);
+    const headH = headLines.length * headLh;
+
+    ctx.font = `500 ${cpx(22)}px Inter, system-ui, sans-serif`;
+    const nameLines = name ? wrapText(ctx, name, maxW) : [];
+    const nameH = nameLines.length * nameLh;
+
+    const priceH = price ? priceLh : 0;
+
+    ctx.font = `500 ${cpx(20)}px Inter, system-ui, sans-serif`;
+    const contactSegs = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
+    const contactWrapped = contactSegs.map(seg => wrapText(ctx, seg, maxW));
+    const contactsH = contactWrapped.reduce((a, lines) => a + lines.length * lineLh, 0);
+
+    const totalH = headH
+        + (nameH    ? gap + nameH    : 0)
+        + (priceH   ? gap + priceH   : 0)
+        + (contactsH ? gap + contactsH : 0);
+    let cy = CH/2 - totalH/2;
+
+    // Heading
     ctx.font = `bold ${cpx(44)}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2 - cpx(100), CW - cpx(140), cpx(52));
+    drawCenteredText(ctx, head, CW/2, cy + headH/2, maxW, headLh);
+    cy += headH;
 
+    // Accent below heading
+    cy += cpx(6);
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2 - cpx(30), CH/2 - cpx(60), cpx(60), Math.max(2, cpx(3)));
+    ctx.fillRect(CW/2 - cpx(30), cy, cpx(60), Math.max(2, cpx(3)));
+    cy += cpx(8);
 
     if (name) {
+        cy += gap;
         ctx.font = `500 ${cpx(22)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#c7d2fe';
-        drawCenteredText(ctx, name, CW/2, CH/2 - cpx(15), CW - cpx(140), cpx(30));
+        drawCenteredText(ctx, name, CW/2, cy + nameH/2, maxW, nameLh);
+        cy += nameH;
     }
     if (price) {
+        cy += gap;
         ctx.font = `700 ${cpx(28)}px Inter, system-ui, sans-serif`;
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2 + cpx(30), CW - cpx(140), cpx(34));
+        drawCenteredText(ctx, price, CW/2, cy + priceH/2, maxW, priceLh);
+        cy += priceH;
     }
-
-    // Contact lines
-    ctx.font = `500 ${cpx(20)}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle = '#e2e8f0';
-    const lines = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
-    lines.forEach((l,i) => {
-        drawCenteredText(ctx, l, CW/2, CH/2 + cpx(95) + i * cpx(34), CW - cpx(140), cpx(28));
-    });
+    if (contactsH) {
+        cy += gap;
+        ctx.font = `500 ${cpx(20)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = '#e2e8f0';
+        contactSegs.forEach((seg, i) => {
+            const segH = contactWrapped[i].length * lineLh;
+            drawCenteredText(ctx, seg, CW/2, cy + segH/2, maxW, lineLh);
+            cy += segH;
+        });
+    }
 
     ctx.restore();
 }
