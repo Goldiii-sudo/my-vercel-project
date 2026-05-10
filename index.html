@@ -1545,7 +1545,12 @@ function bakePhotoCovers() {
 function drawTextWithStroke(ctx, text, x, y, maxW, lineHeight, fillColor) {
     ctx.lineJoin = 'round';
     ctx.miterLimit = 2;
-    ctx.lineWidth = Math.max(3, parseInt(ctx.font, 10) * 0.12);
+    // Pull the font *size* (px), not the leading weight number. `parseInt`
+    // on `"600 30px Inter, …"` returns 600 → lineWidth=72 → a giant blob
+    // around every glyph. Match the px part explicitly.
+    const fpxMatch = String(ctx.font).match(/(\d+(?:\.\d+)?)px/);
+    const fpx = fpxMatch ? parseFloat(fpxMatch[1]) : 28;
+    ctx.lineWidth = Math.max(2, Math.min(6, fpx * 0.12));
     ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     const lines = wrapText(ctx, text, maxW);
     const lh = lineHeight || 38;
@@ -1594,7 +1599,9 @@ function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
     ctx.textAlign = 'center';
     ctx.lineJoin = 'round';
     ctx.miterLimit = 2;
-    ctx.lineWidth = Math.max(3, parseInt(ctx.font, 10) * 0.12);
+    const fpxMatch = String(ctx.font).match(/(\d+(?:\.\d+)?)px/);
+    const fpx = fpxMatch ? parseFloat(fpxMatch[1]) : 28;
+    ctx.lineWidth = Math.max(2, Math.min(6, fpx * 0.12));
     ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     const lines = wrapText(ctx, text, maxW);
     const totalH = lines.length * lh;
