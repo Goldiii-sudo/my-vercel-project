@@ -1529,16 +1529,18 @@ function drawTextWithStroke(ctx, text, x, y, maxW, lineHeight, fillColor) {
     ctx.lineWidth = Math.max(3, parseInt(ctx.font, 10) * 0.12);
     ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     const lines = wrapText(ctx, text, maxW);
-    const totalH = lines.length * (lineHeight || 38);
-    let cy = y - totalH/2 + (lineHeight || 38) * 0.35;
+    const lh = lineHeight || 38;
+    const totalH = lines.length * lh;
+    let cy = y - totalH/2 + lh * 0.35;
     for (const line of lines) {
         ctx.strokeText(line, x, cy, maxW);
+        cy += lh;
     }
-    cy = y - totalH/2 + (lineHeight || 38) * 0.35;
+    cy = y - totalH/2 + lh * 0.35;
     ctx.fillStyle = fillColor;
     for (const line of lines) {
         ctx.fillText(line, x, cy, maxW);
-        cy += (lineHeight || 38);
+        cy += lh;
     }
 }
 
