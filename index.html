@@ -540,13 +540,25 @@ async function selectFlat(flat) {
     if (flat.images && flat.images.length > 0) {
         const maxPhotos = Math.min(flat.images.length, 15);
         const loadPromises = flat.images.slice(0, maxPhotos).map((url, i) => {
-            return new Promise(resolve => {
-                const img = new Image();
-                img.onload = () => resolve({ file: new File([], 'photo_' + i + '.jpg'), img, objectURL: url });
-                img.onerror = () => resolve(null);
-                setTimeout(() => resolve(null), 10000);
-                img.src = url;
-            });
+            return (async () => {
+                try {
+                    const resp = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+                    if (!resp.ok) throw new Error('proxy failed');
+                    const blob = await resp.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.src = blobUrl;
+                    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; setTimeout(rej, 10000); });
+                    return { file: new File([blob], 'photo_' + i + '.jpg', {type: blob.type}), img, objectURL: blobUrl };
+                } catch(e) {
+                    try {
+                        const img = new Image();
+                        img.src = url;
+                        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; setTimeout(rej, 10000); });
+                        return { file: new File([], 'photo_' + i + '.jpg'), img, objectURL: url };
+                    } catch(e2) { return null; }
+                }
+            })();
         });
         const results = await Promise.all(loadPromises);
         results.forEach(r => { if (r) photos.push(r); });
@@ -805,9 +817,26 @@ ${list}
 }
 
 /* --- MAIN ENTRY --- */
+function generateFallbackCaptions() {
+    const name     = $('#prop-name').value.trim();
+    const price    = $('#prop-price').value.trim();
+    const area     = $('#prop-area').value.trim();
+    const district = $('#prop-district').value.trim();
+
+    const adjectives = ['Уютная', 'Стильная', 'Просторная', 'Светлая', 'Современная', 'Элегантная', 'Комфортная', 'Панорамная', 'Тёплая', 'Премиум', 'Дизайнерская', 'Идеальная', 'Солнечная', 'Роскошная', 'Прекрасная'];
+    const rooms = ['Гостиная', 'Спальня', 'Кухня', 'Ванная', 'Балкон', 'Интерьер', 'Планировка', 'Вид из окна', 'Терраса', 'Холл', 'Прихожая', 'Зона отдыха', 'Столовая', 'Кабинет', 'Гардеробная'];
+    const caps = [];
+    const n = photos.length;
+    for (let i = 0; i < n; i++) {
+        const adj = adjectives[i % adjectives.length];
+        const room = rooms[i % rooms.length];
+        caps.push(adj + ' ' + room.toLowerCase());
+    }
+    return caps;
+}
+
 async function generateCaptions() {
     const key = $('#api-key').value.trim();
-    if (!key) throw new Error('Не указан API ключ NVIDIA');
 
     const name     = $('#prop-name').value.trim();
     const price    = $('#prop-price').value.trim();
@@ -815,22 +844,34 @@ async function generateCaptions() {
     const district = $('#prop-district').value.trim();
     const features = $('#prop-features').value.trim();
 
-    // STEP 1: batch generate
-    setProgress(3, 'Запрос к NVIDIA…');
-    let captions = await generateBatchCaptions(key, name, price, area, district, features);
-
-    setProgress(15, `Получено ${captions.length} подписей ✓`);
-    await delay(400);
-
-    // STEP 2: diversity review & rewrite
-    try {
-        captions = await diversityReview(key, captions, name, price);
-    } catch (e) {
-        console.warn('Diversity review skipped:', e.message);
-        // keep originals — non-critical
+    if (!key) {
+        setProgress(15, 'API ключ не указан — используем авто-подписи');
+        await delay(300);
+        return generateFallbackCaptions();
     }
 
-    return captions;
+    try {
+        // STEP 1: batch generate
+        setProgress(3, 'Запрос к NVIDIA…');
+        let captions = await generateBatchCaptions(key, name, price, area, district, features);
+
+        setProgress(15, `Получено ${captions.length} подписей`);
+        await delay(400);
+
+        // STEP 2: diversity review & rewrite
+        try {
+            captions = await diversityReview(key, captions, name, price);
+        } catch (e) {
+            console.warn('Diversity review skipped:', e.message);
+        }
+
+        return captions;
+    } catch (e) {
+        console.warn('NVIDIA API failed, using fallback:', e.message);
+        setProgress(15, 'API недоступен — используем авто-подписи');
+        await delay(300);
+        return generateFallbackCaptions();
+    }
 }
 
 // ============================================================
@@ -1211,7 +1252,6 @@ async function startGeneration() {
     if (photos.length > 20) errs.push('Максимум 20 фото');
     if (!$('#prop-name').value.trim())  errs.push('Укажите название');
     if (!$('#prop-price').value.trim()) errs.push('Укажите цену');
-    if (!$('#api-key').value.trim())    errs.push('Укажите API ключ NVIDIA');
     if (errs.length) { alert(errs.join('\n')); return; }
 
     isGenerating = true;
