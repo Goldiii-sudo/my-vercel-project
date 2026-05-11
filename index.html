@@ -539,19 +539,17 @@ async function selectFlat(flat) {
 
     if (flat.images && flat.images.length > 0) {
         const maxPhotos = Math.min(flat.images.length, 15);
-        for (let i = 0; i < maxPhotos; i++) {
-            try {
+        const loadPromises = flat.images.slice(0, maxPhotos).map((url, i) => {
+            return new Promise(resolve => {
                 const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.src = flat.images[i];
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                    setTimeout(reject, 8000);
-                });
-                photos.push({ file: new File([], 'photo_' + i + '.jpg'), img, objectURL: flat.images[i] });
-            } catch(e) { /* skip failed images */ }
-        }
+                img.onload = () => resolve({ file: new File([], 'photo_' + i + '.jpg'), img, objectURL: url });
+                img.onerror = () => resolve(null);
+                setTimeout(() => resolve(null), 10000);
+                img.src = url;
+            });
+        });
+        const results = await Promise.all(loadPromises);
+        results.forEach(r => { if (r) photos.push(r); });
         renderGrid();
     }
 
