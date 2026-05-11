@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReelEstate — Генератор видео-слайдшоу недвижимости</title>
+    <title>ReelEstate — Генератор видео недвижимости (NVIDIA AI)</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -164,15 +164,15 @@
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.05s">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-base font-semibold flex items-center gap-2">
-                        <span class="text-lg">🔑</span> API ключ Gemini
+                        <span class="text-lg">🔑</span> API ключ NVIDIA
                     </h2>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener"
+                    <a href="https://build.nvidia.com/" target="_blank" rel="noopener"
                        class="text-indigo-400 hover:text-indigo-300 text-xs transition">Получить ключ →</a>
                 </div>
                 <div class="flex gap-2">
                     <input type="password" id="api-key"
                            class="flex-1 bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                           placeholder="AIzaSy...">
+                           placeholder="nvapi-...">
                     <button onclick="testApiKey()" id="test-api-btn"
                             class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700/50 rounded-xl text-sm font-medium transition whitespace-nowrap">
                         Проверить
@@ -273,7 +273,7 @@
                 <div class="space-y-2.5">
                     <div class="flex items-center gap-3 text-sm">
                         <div class="step-indicator" id="step-icon-1">1</div>
-                        <span id="step-label-1" class="text-gray-500">Генерация подписей + проверка разнообразия</span>
+                        <span id="step-label-1" class="text-gray-500">NVIDIA: генерация подписей</span>
                     </div>
                     <div class="flex items-center gap-3 text-sm">
                         <div class="step-indicator" id="step-icon-2">2</div>
@@ -322,8 +322,8 @@ const CW = 1280;
 const CH = 720;
 const SLIDE_DUR = 3.0;
 const FADE_DUR = 0.6;
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models';
+const NVIDIA_MODEL = 'meta/llama-3.1-8b-instruct';
+const NVIDIA_BASE  = 'https://integrate.api.nvidia.com/v1/chat/completions';
 
 // ============================================================
 // STATE
@@ -358,7 +358,7 @@ const downloadInfo = $('#download-info');
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('gemini_api_key');
+    const saved = localStorage.getItem('nvidia_api_key');
     if (saved) $('#api-key').value = saved;
 
     dropZone.addEventListener('click', () => fileInput.click());
@@ -417,17 +417,18 @@ function hideErr()  { photoError.classList.add('hidden'); }
 // ============================================================
 // GEMINI API
 // ============================================================
-async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9) {
-    const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent`;
-    const resp = await fetch(url, {
+async function nvFetch(prompt, key, maxTokens = 800, temperature = 0.9) {
+    const resp = await fetch(NVIDIA_BASE, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-goog-api-key': key
+            'Authorization': 'Bearer ' + key
         },
         body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature, maxOutputTokens: maxTokens }
+            model: NVIDIA_MODEL,
+            messages: [{ role: 'user', content: prompt }],
+            temperature,
+            max_tokens: maxTokens
         })
     });
     if (!resp.ok) {
@@ -435,7 +436,7 @@ async function geminiFetch(prompt, key, maxTokens = 800, temperature = 0.9) {
         throw new Error(e?.error?.message || `HTTP ${resp.status}`);
     }
     const data = await resp.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
 async function testApiKey() {
@@ -446,8 +447,8 @@ async function testApiKey() {
     btn.disabled = true; btn.textContent = '...';
     st.textContent = 'Проверка...'; st.className='mt-2 text-xs text-gray-400'; st.classList.remove('hidden');
     try {
-        await geminiFetch('Ответь одним словом: ок', key);
-        localStorage.setItem('gemini_api_key', key);
+        await nvFetch('Ответь одним словом: ок', key);
+        localStorage.setItem('nvidia_api_key', key);
         st.textContent = '✓ Ключ действителен'; st.className='mt-2 text-xs text-green-400';
     } catch (e) {
         st.textContent = '✗ ' + e.message; st.className='mt-2 text-xs text-red-400';
@@ -515,9 +516,9 @@ async function generateBatchCaptions(key, name, price, area, district, features)
 2. [подпись для слайда 2]
 ...`;
 
-    setProgress(5, 'Gemini генерирует все подписи разом…');
+    setProgress(5, 'NVIDIA генерирует подписи…');
 
-    const raw = await geminiFetch(prompt, key, 1200, 1.0);
+    const raw = await nvFetch(prompt, key, 1200, 1.0);
     let captions = parseNumberedList(raw);
 
     // pad or trim to exact count
@@ -551,7 +552,7 @@ ${list}
 2. [подпись]
 ...`;
 
-    const raw = await geminiFetch(prompt, key, 1200, 0.95);
+    const raw = await nvFetch(prompt, key, 1200, 0.95);
     const fixed = parseNumberedList(raw);
 
     if (fixed.length === captions.length) return fixed;
@@ -562,7 +563,7 @@ ${list}
 /* --- MAIN ENTRY --- */
 async function generateCaptions() {
     const key = $('#api-key').value.trim();
-    if (!key) throw new Error('Не указан API ключ Gemini');
+    if (!key) throw new Error('Не указан API ключ NVIDIA');
 
     const name     = $('#prop-name').value.trim();
     const price    = $('#prop-price').value.trim();
@@ -571,7 +572,7 @@ async function generateCaptions() {
     const features = $('#prop-features').value.trim();
 
     // STEP 1: batch generate
-    setProgress(3, 'Запрос к Gemini (batch)…');
+    setProgress(3, 'Запрос к NVIDIA…');
     let captions = await generateBatchCaptions(key, name, price, area, district, features);
 
     setProgress(15, `Получено ${captions.length} подписей ✓`);
@@ -965,7 +966,7 @@ async function startGeneration() {
     if (photos.length > 20) errs.push('Максимум 20 фото');
     if (!$('#prop-name').value.trim())  errs.push('Укажите название');
     if (!$('#prop-price').value.trim()) errs.push('Укажите цену');
-    if (!$('#api-key').value.trim())    errs.push('Укажите API ключ Gemini');
+    if (!$('#api-key').value.trim())    errs.push('Укажите API ключ NVIDIA');
     if (errs.length) { alert(errs.join('\n')); return; }
 
     isGenerating = true;
