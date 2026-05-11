@@ -138,6 +138,68 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; display: inline-block; }
+
+        .tab-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #9ca3af;
+        }
+        .tab-btn:hover { color: #e5e7eb; background: rgba(55,65,81,0.3); }
+        .tab-btn.active {
+            color: #fff;
+            background: rgba(99,102,241,0.15);
+            border-color: rgba(99,102,241,0.4);
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .flat-card {
+            background: rgba(17,24,39,0.8);
+            border: 1px solid rgba(75,85,99,0.3);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .flat-card:hover {
+            border-color: rgba(99,102,241,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .flat-card img {
+            width: 100%; height: 180px; object-fit: cover;
+        }
+        .flat-card .info { padding: 12px 14px; }
+        .flat-card .price { color: #a5b4fc; font-weight: 700; font-size: 16px; }
+        .flat-card .title { color: #d1d5db; font-size: 13px; margin-top: 4px; line-height: 1.3; }
+        .flat-card .meta { color: #6b7280; font-size: 11px; margin-top: 6px; }
+
+        .template-card {
+            background: rgba(17,24,39,0.8);
+            border: 1px solid rgba(75,85,99,0.3);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .template-card:hover {
+            border-color: rgba(99,102,241,0.5);
+            transform: translateY(-2px);
+        }
+        .template-card.selected {
+            border-color: #6366f1;
+            background: rgba(99,102,241,0.1);
+        }
+        .template-card .icon { font-size: 36px; margin-bottom: 8px; }
+        .template-card .name { font-weight: 600; font-size: 14px; color: #e5e7eb; }
+        .template-card .desc { font-size: 12px; color: #6b7280; margin-top: 4px; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -158,7 +220,7 @@
             </div>
         </header>
 
-        <main class="max-w-3xl mx-auto px-4 pb-16 space-y-6">
+        <main class="max-w-4xl mx-auto px-4 pb-16 space-y-6">
 
             <!-- API Key -->
             <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.05s">
@@ -181,75 +243,119 @@
                 <div id="api-status" class="mt-2 text-xs hidden"></div>
             </section>
 
-            <!-- Photos -->
-            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.1s">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-base font-semibold flex items-center gap-2">
-                        <span class="text-lg">📸</span> Фотографии объекта
+            <!-- TABS -->
+            <div class="flex gap-2 justify-center flex-wrap fade-in-up" style="animation-delay:0.08s">
+                <button class="tab-btn active" onclick="switchTab('catalog')">🏠 Каталог</button>
+                <button class="tab-btn" onclick="switchTab('templates')">🎨 Шаблоны</button>
+                <button class="tab-btn" onclick="switchTab('manual')">✍️ Ручной ввод</button>
+            </div>
+
+            <!-- TAB: CATALOG -->
+            <div id="tab-catalog" class="tab-panel active space-y-4">
+                <section class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-base font-semibold flex items-center gap-2">
+                            <span class="text-lg">🏠</span> Квартиры из базы
+                            <span id="catalog-count" class="badge bg-gray-800 text-gray-400">0</span>
+                        </h2>
+                        <div class="flex gap-2">
+                            <select id="catalog-filter-city" onchange="filterCatalog()"
+                                class="bg-gray-900/80 border border-gray-700/50 rounded-lg px-3 py-1.5 text-xs text-white">
+                                <option value="">Все города</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+                    <div id="catalog-empty" class="text-center py-10 text-gray-500 hidden">
+                        <p class="text-3xl mb-2">📦</p>
+                        <p>Загрузка каталога...</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- TAB: TEMPLATES -->
+            <div id="tab-templates" class="tab-panel space-y-4">
+                <section class="glass-card rounded-2xl p-5">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
+                        <span class="text-lg">🎨</span> Шаблоны видео
                     </h2>
-                    <span id="photo-count-badge" class="badge bg-gray-800 text-gray-400 hidden">
-                        <span id="photo-count-text">0</span> / 20
-                    </span>
-                </div>
-                <div id="drop-zone" class="drop-zone rounded-xl p-8 md:p-10 text-center">
-                    <div class="text-4xl mb-3 opacity-60">📁</div>
-                    <p class="text-gray-400 text-sm mb-1">Перетащите фото сюда или нажмите для выбора</p>
-                    <p class="text-gray-600 text-xs">PNG, JPG, WEBP — от 5 до 20 фото</p>
-                    <input type="file" id="file-input" multiple accept="image/*" class="hidden">
-                </div>
-                <div id="photo-preview" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 hidden"></div>
-                <div id="photo-error" class="mt-2 text-xs text-red-400 hidden"></div>
-            </section>
+                    <p class="text-gray-400 text-sm mb-4">Выберите стиль видео. Шаблон применяется ко всем генерациям.</p>
+                    <div id="templates-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+                </section>
+            </div>
 
-            <!-- Property Data -->
-            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.15s">
-                <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
-                    <span class="text-lg">📋</span> Данные объекта
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Название объекта *</label>
-                        <input type="text" id="prop-name"
-                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                               placeholder="3-комн. квартира на Невском">
+            <!-- TAB: MANUAL -->
+            <div id="tab-manual" class="tab-panel space-y-4">
+                <!-- Photos -->
+                <section class="glass-card rounded-2xl p-5 fade-in-up">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-semibold flex items-center gap-2">
+                            <span class="text-lg">📸</span> Фотографии объекта
+                        </h2>
+                        <span id="photo-count-badge" class="badge bg-gray-800 text-gray-400 hidden">
+                            <span id="photo-count-text">0</span> / 20
+                        </span>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Цена *</label>
-                        <input type="text" id="prop-price"
-                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                               placeholder="15 500 000 ₽">
+                    <div id="drop-zone" class="drop-zone rounded-xl p-8 md:p-10 text-center">
+                        <div class="text-4xl mb-3 opacity-60">📁</div>
+                        <p class="text-gray-400 text-sm mb-1">Перетащите фото сюда или нажмите для выбора</p>
+                        <p class="text-gray-600 text-xs">PNG, JPG, WEBP — от 5 до 20 фото</p>
+                        <input type="file" id="file-input" multiple accept="image/*" class="hidden">
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Площадь</label>
-                        <input type="text" id="prop-area"
-                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                               placeholder="89 м²">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Район / Адрес</label>
-                        <input type="text" id="prop-district"
-                               class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                               placeholder="Центральный, Невский пр-т 10">
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <label class="block text-xs text-gray-500 mb-1.5 font-medium">Ключевые преимущества</label>
-                    <textarea id="prop-features" rows="2"
-                              class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition resize-none"
-                              placeholder="Свежий ремонт, панорамные окна, паркинг, рядом метро"></textarea>
-                </div>
-            </section>
+                    <div id="photo-preview" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 hidden"></div>
+                    <div id="photo-error" class="mt-2 text-xs text-red-400 hidden"></div>
+                </section>
 
-            <!-- Contacts -->
-            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.2s">
-                <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
-                    <span class="text-lg">📞</span> Контакты
-                    <span class="text-xs font-normal text-gray-600">(для последнего слайда)</span>
-                </h2>
-                <input type="text" id="contact-info"
-                       class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
-                       placeholder="+7 (999) 123-45-67 • Агентство «Недвижимость PRO»">
-            </section>
+                <!-- Property Data -->
+                <section class="glass-card rounded-2xl p-5 fade-in-up">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
+                        <span class="text-lg">📋</span> Данные объекта
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Название объекта *</label>
+                            <input type="text" id="prop-name"
+                                   class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                                   placeholder="3-комн. квартира на Невском">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Цена *</label>
+                            <input type="text" id="prop-price"
+                                   class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                                   placeholder="15 500 000 ₽">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Площадь</label>
+                            <input type="text" id="prop-area"
+                                   class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                                   placeholder="89 м²">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Район / Адрес</label>
+                            <input type="text" id="prop-district"
+                                   class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                                   placeholder="Центральный, Невский пр-т 10">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-xs text-gray-500 mb-1.5 font-medium">Ключевые преимущества</label>
+                        <textarea id="prop-features" rows="2"
+                                  class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition resize-none"
+                                  placeholder="Свежий ремонт, панорамные окна, паркинг, рядом метро"></textarea>
+                    </div>
+                </section>
+
+                <!-- Contacts -->
+                <section class="glass-card rounded-2xl p-5 fade-in-up">
+                    <h2 class="text-base font-semibold flex items-center gap-2 mb-3">
+                        <span class="text-lg">📞</span> Контакты
+                        <span class="text-xs font-normal text-gray-600">(для последнего слайда)</span>
+                    </h2>
+                    <input type="text" id="contact-info"
+                           class="w-full bg-gray-900/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 transition"
+                           placeholder="+7 (999) 123-45-67 • Агентство «Недвижимость PRO»">
+                </section>
+            </div>
 
             <!-- Generate -->
             <div class="text-center pt-2 fade-in-up" style="animation-delay:0.25s">
@@ -333,6 +439,143 @@ let captions = [];
 let videoBlob = null;
 let isGenerating = false;
 let slidesSnapshot = [];  // store last generated slides for preview replay
+let flatsCatalog = [];    // flats from DB
+let selectedTemplate = 'classic'; // current video template
+
+const VIDEO_TEMPLATES = [
+    { id: 'classic', icon: '🎬', name: 'Классика', desc: 'Тёмный фон, плавные переходы' },
+    { id: 'luxury',  icon: '👑', name: 'Люкс',     desc: 'Золотые акценты, премиум стиль' },
+    { id: 'modern',  icon: '⚡', name: 'Модерн',   desc: 'Яркие цвета, быстрые переходы' },
+    { id: 'minimal', icon: '🤍', name: 'Минимал',  desc: 'Белый текст, чистый дизайн' },
+    { id: 'warm',    icon: '🌅', name: 'Тёплый',   desc: 'Тёплые тона, уютная атмосфера' },
+    { id: 'ocean',   icon: '🌊', name: 'Океан',    desc: 'Бирюзовые акценты, свежесть' },
+];
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById('tab-' + tabId);
+    if (panel) panel.classList.add('active');
+    event.target.classList.add('active');
+}
+
+// ============================================================
+// CATALOG
+// ============================================================
+async function loadCatalog() {
+    try {
+        const resp = await fetch('flats.json');
+        flatsCatalog = await resp.json();
+        renderCatalog();
+    } catch(e) {
+        console.warn('Catalog load failed:', e);
+        const el = document.getElementById('catalog-empty');
+        if (el) { el.classList.remove('hidden'); el.querySelector('p:last-child').textContent = 'Не удалось загрузить каталог'; }
+    }
+}
+
+function renderCatalog(filter) {
+    const grid = document.getElementById('catalog-grid');
+    const countEl = document.getElementById('catalog-count');
+    if (!grid) return;
+
+    let flats = flatsCatalog;
+    if (filter) flats = flats.filter(f => f.city === filter);
+
+    countEl.textContent = flats.length;
+    grid.innerHTML = '';
+
+    const cities = [...new Set(flatsCatalog.map(f => f.city).filter(Boolean))];
+    const sel = document.getElementById('catalog-filter-city');
+    if (sel && sel.options.length <= 1) {
+        cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    }
+
+    flats.forEach(flat => {
+        const imgUrl = flat.images && flat.images.length ? flat.images[0] : '';
+        const shortTitle = flat.title ? flat.title.replace(/\. Цена.*/i, '') : 'Без названия';
+        const priceStr = flat.price ? `$${flat.price.toLocaleString()}` : '';
+        const meta = [flat.area ? flat.area + ' м²' : '', flat.rooms ? flat.rooms + ' комн.' : '', flat.district || ''].filter(Boolean).join(' · ');
+
+        const card = document.createElement('div');
+        card.className = 'flat-card';
+        card.innerHTML = `
+            ${imgUrl ? `<img src="${imgUrl}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div style="height:180px;background:#1f2937;display:flex;align-items:center;justify-content:center;color:#4b5563">Нет фото</div>'}
+            <div class="info">
+                <div class="price">${priceStr}</div>
+                <div class="title">${shortTitle}</div>
+                <div class="meta">${meta}</div>
+            </div>
+        `;
+        card.onclick = () => selectFlat(flat);
+        grid.appendChild(card);
+    });
+}
+
+function filterCatalog() {
+    const v = document.getElementById('catalog-filter-city').value;
+    renderCatalog(v || undefined);
+}
+
+async function selectFlat(flat) {
+    switchTab('manual');
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        if (b.textContent.includes('Ручной')) b.classList.add('active');
+    });
+
+    const shortTitle = flat.title ? flat.title.replace(/\. Цена.*/i, '') : '';
+    document.getElementById('prop-name').value = shortTitle;
+    document.getElementById('prop-price').value = flat.price ? `$${flat.price.toLocaleString()}` : '';
+    document.getElementById('prop-area').value = flat.area ? flat.area + ' м²' : '';
+    document.getElementById('prop-district').value = [flat.district, flat.city].filter(Boolean).join(', ');
+    document.getElementById('contact-info').value = flat.phone || '';
+
+    photos = [];
+    renderGrid();
+
+    if (flat.images && flat.images.length > 0) {
+        const maxPhotos = Math.min(flat.images.length, 15);
+        for (let i = 0; i < maxPhotos; i++) {
+            try {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = flat.images[i];
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    setTimeout(reject, 8000);
+                });
+                photos.push({ file: new File([], 'photo_' + i + '.jpg'), img, objectURL: flat.images[i] });
+            } catch(e) { /* skip failed images */ }
+        }
+        renderGrid();
+    }
+
+    document.getElementById('generate-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ============================================================
+// TEMPLATES
+// ============================================================
+function renderTemplates() {
+    const grid = document.getElementById('templates-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    VIDEO_TEMPLATES.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'template-card' + (t.id === selectedTemplate ? ' selected' : '');
+        card.innerHTML = `<div class="icon">${t.icon}</div><div class="name">${t.name}</div><div class="desc">${t.desc}</div>`;
+        card.onclick = () => {
+            selectedTemplate = t.id;
+            renderTemplates();
+        };
+        grid.appendChild(card);
+    });
+}
 
 // ============================================================
 // DOM
@@ -366,6 +609,9 @@ document.addEventListener('DOMContentLoaded', () => {
     dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
     dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+
+    loadCatalog();
+    renderTemplates();
 });
 
 // ============================================================
