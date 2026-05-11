@@ -903,8 +903,9 @@ function recordVideo(canvas, ctx, slides) {
                 const sEnd   = sStart + SLIDE_DUR;
                 if (t >= sStart - 0.02 && t < sEnd + 0.02) {
                     let alpha = 1;
-                    if (t < sStart + FADE_DUR) alpha = clamp01((t - sStart) / FADE_DUR);
-                    if (t > sEnd   - FADE_DUR) alpha = clamp01((sEnd - t)   / FADE_DUR);
+                    if (t < sStart + FADE_DUR) alpha = clamp01(2*(t - sStart)/FADE_DUR - 1);
+                    if (t > sEnd   - FADE_DUR) alpha = clamp01(2*(sEnd - t)/FADE_DUR - 1);
+                    if (alpha <= 0) continue;
                     offCtx.clearRect(0, 0, CW, CH);
                     slides[i].render(offCtx, 1);
                     ctx.save();
@@ -1055,8 +1056,9 @@ function setupPreview(slides) {
                 const s = i*(SLIDE_DUR-FADE_DUR), e = s+SLIDE_DUR;
                 if (t >= s-0.02 && t < e+0.02) {
                     let a = 1;
-                    if (t < s+FADE_DUR) a = clamp01((t-s)/FADE_DUR);
-                    if (t > e-FADE_DUR) a = clamp01((e-t)/FADE_DUR);
+                    if (t < s+FADE_DUR) a = clamp01(2*(t-s)/FADE_DUR - 1);
+                    if (t > e-FADE_DUR) a = clamp01(2*(e-t)/FADE_DUR - 1);
+                    if (a <= 0) continue;
                     offC.clearRect(0, 0, CW, CH);
                     slides[i].render(offC, 1);
                     pctx.save();
