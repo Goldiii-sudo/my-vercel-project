@@ -503,7 +503,7 @@ async function generateBatchCaptions(key, name, price, area, district, features)
 - Метафора («Жизнь в самом сердце города пульсирует здесь»)
 
 Требования:
-- Максимум 8 слов на подпись (строго!)
+- Максимум 5 слов на подпись (строго! Короткие фразы!)
 - Русский язык, живой, продающий
 - Никаких повторяющихся конструкций
 - Не начинай две подряд с одинаковой буквы/слова
@@ -541,7 +541,7 @@ ${list}
 Проверь их и НАПИШИ ЗАНОВО те, которые:
 1) Похожи друг на друга по структуре или словами
 2) Слишком скучные / шаблонные
-3) Не вписываются в 8 слов
+3) Не вписываются в 5 слов
 
 ⚠️ ОБЯЗАТЕЛЬНО: каждая новая подпись должна быть уникальным приёмом.
 Не дублируй структуру «Прилагательное + Существительное + Глагол».
@@ -675,29 +675,64 @@ function renderTitleSlide(ctx, alpha) {
     }
 
     ctx.textAlign = 'center';
+    const maxW = CW - 140;
 
-    // Decorative accent
-    ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-40, CH/2-145, 80, 4);
+    let nameFontSize = 52;
+    let nameLH = 60;
+    ctx.font = `bold ${nameFontSize}px Inter, system-ui, sans-serif`;
+    let nameLines = wrapText(ctx, name, maxW);
+    while (nameLines.length > 2 && nameFontSize > 30) {
+        nameFontSize -= 4;
+        nameLH = Math.round(nameFontSize * 1.2);
+        ctx.font = `bold ${nameFontSize}px Inter, system-ui, sans-serif`;
+        nameLines = wrapText(ctx, name, maxW);
+    }
+    const nameH = nameLines.length * nameLH;
 
-    // Name
-    ctx.font = 'bold 52px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, name, CW/2, CH/2 - 55, CW-140, 60);
-
-    // Price
+    let priceH = 0;
+    const priceLH = 48;
     if (price) {
         ctx.font = '700 42px Inter, system-ui, sans-serif';
-        ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2 + 25, CW-140, 48);
+        priceH = wrapText(ctx, price, maxW).length * priceLH;
     }
 
-    // Subline
     const sub = [area, dist].filter(Boolean).join(' • ');
+    let subH = 0;
+    const subLH = 28;
     if (sub) {
         ctx.font = '400 20px Inter, system-ui, sans-serif';
+        subH = wrapText(ctx, sub, maxW).length * subLH;
+    }
+
+    const accentH = 4;
+    const gap = 20;
+    const totalH = accentH + gap + nameH
+        + (priceH ? gap + priceH : 0)
+        + (subH ? gap + subH : 0);
+    let curY = (CH - totalH) / 2;
+
+    ctx.fillStyle = '#6366f1';
+    ctx.fillRect(CW/2 - 40, curY, 80, accentH);
+    curY += accentH + gap;
+
+    ctx.font = `bold ${nameFontSize}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle = '#fff';
+    drawCenteredText(ctx, name, CW/2, curY + nameH / 2, maxW, nameLH);
+    curY += nameH;
+
+    if (price) {
+        curY += gap;
+        ctx.font = '700 42px Inter, system-ui, sans-serif';
+        ctx.fillStyle = '#a5b4fc';
+        drawCenteredText(ctx, price, CW/2, curY + priceH / 2, maxW, priceLH);
+        curY += priceH;
+    }
+
+    if (sub) {
+        curY += gap;
+        ctx.font = '400 20px Inter, system-ui, sans-serif';
         ctx.fillStyle = '#94a3b8';
-        drawCenteredText(ctx, sub, CW/2, CH/2 + 90, CW-140, 28);
+        drawCenteredText(ctx, sub, CW/2, curY + subH / 2, maxW, subLH);
     }
 
     ctx.restore();
@@ -705,7 +740,7 @@ function renderTitleSlide(ctx, alpha) {
 
 function renderPhotoSlide(ctx, idx, alpha) {
     const photo   = photos[idx];
-    const caption = captions[idx] || `Фото ${idx+1}`;
+    const caption = truncateWords(captions[idx] || `Фото ${idx+1}`, 10);
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -746,31 +781,66 @@ function renderContactSlide(ctx, alpha) {
     }
 
     ctx.textAlign = 'center';
+    const maxW = CW - 140;
+
+    const titleText = 'Свяжитесь с нами!';
+    const titleLH = 52;
+    ctx.font = 'bold 44px Inter, system-ui, sans-serif';
+    const titleH = wrapText(ctx, titleText, maxW).length * titleLH;
+
+    const divH = 3;
+    let nameH = 0;
+    const nameLH = 30;
+    if (name) {
+        ctx.font = '500 22px Inter, system-ui, sans-serif';
+        nameH = wrapText(ctx, name, maxW).length * nameLH;
+    }
+
+    let priceH = 0;
+    const priceLH = 34;
+    if (price) {
+        ctx.font = '700 28px Inter, system-ui, sans-serif';
+        priceH = wrapText(ctx, price, maxW).length * priceLH;
+    }
+
+    const contactLines = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
+    const contactLH = 34;
+    const contactsH = contactLines.length * contactLH;
+
+    const gap = 18;
+    const totalH = titleH + gap + divH + gap
+        + (nameH ? nameH + gap : 0)
+        + (priceH ? priceH + gap : 0)
+        + contactsH;
+    let curY = (CH - totalH) / 2;
 
     ctx.font = 'bold 44px Inter, system-ui, sans-serif';
     ctx.fillStyle = '#fff';
-    drawCenteredText(ctx, 'Свяжитесь с нами!', CW/2, CH/2-100, CW-140, 52);
+    drawCenteredText(ctx, titleText, CW/2, curY + titleH / 2, maxW, titleLH);
+    curY += titleH + gap;
 
     ctx.fillStyle = '#6366f1';
-    ctx.fillRect(CW/2-30, CH/2-60, 60, 3);
+    ctx.fillRect(CW/2 - 30, curY, 60, divH);
+    curY += divH + gap;
 
     if (name) {
         ctx.font = '500 22px Inter, system-ui, sans-serif';
         ctx.fillStyle = '#c7d2fe';
-        drawCenteredText(ctx, name, CW/2, CH/2-15, CW-140, 30);
+        drawCenteredText(ctx, name, CW/2, curY + nameH / 2, maxW, nameLH);
+        curY += nameH + gap;
     }
     if (price) {
         ctx.font = '700 28px Inter, system-ui, sans-serif';
         ctx.fillStyle = '#a5b4fc';
-        drawCenteredText(ctx, price, CW/2, CH/2+30, CW-140, 34);
+        drawCenteredText(ctx, price, CW/2, curY + priceH / 2, maxW, priceLH);
+        curY += priceH + gap;
     }
 
-    // Contact lines
     ctx.font = '500 20px Inter, system-ui, sans-serif';
     ctx.fillStyle = '#e2e8f0';
-    const lines = contacts.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
-    lines.forEach((l,i) => {
-        drawCenteredText(ctx, l, CW/2, CH/2+95+i*34, CW-140, 28);
+    contactLines.forEach((l) => {
+        drawCenteredText(ctx, l, CW/2, curY + contactLH / 2, maxW, 28);
+        curY += contactLH;
     });
 
     ctx.restore();
@@ -811,6 +881,10 @@ function recordVideo(canvas, ctx, slides) {
         rec.onstop = () => resolve(new Blob(chunks, { type: mime }));
         rec.onerror = () => reject(new Error('Ошибка MediaRecorder'));
 
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = CW; offCanvas.height = CH;
+        const offCtx = offCanvas.getContext('2d');
+
         rec.start(100);
         const t0 = performance.now();
 
@@ -830,7 +904,12 @@ function recordVideo(canvas, ctx, slides) {
                     let alpha = 1;
                     if (t < sStart + FADE_DUR) alpha = clamp01((t - sStart) / FADE_DUR);
                     if (t > sEnd   - FADE_DUR) alpha = clamp01((sEnd - t)   / FADE_DUR);
-                    slides[i].render(ctx, alpha);
+                    offCtx.clearRect(0, 0, CW, CH);
+                    slides[i].render(offCtx, 1);
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    ctx.drawImage(offCanvas, 0, 0);
+                    ctx.restore();
                 }
             }
             requestAnimationFrame(frame);
@@ -955,6 +1034,9 @@ async function startGeneration() {
 function setupPreview(slides) {
     const pc  = previewCanvas;
     const pctx = pc.getContext('2d');
+    const offCvs = document.createElement('canvas');
+    offCvs.width = CW; offCvs.height = CH;
+    const offC = offCvs.getContext('2d');
     slides[0].render(pctx, 1);
 
     let playing = false;
@@ -974,7 +1056,12 @@ function setupPreview(slides) {
                     let a = 1;
                     if (t < s+FADE_DUR) a = clamp01((t-s)/FADE_DUR);
                     if (t > e-FADE_DUR) a = clamp01((e-t)/FADE_DUR);
-                    slides[i].render(pctx, a);
+                    offC.clearRect(0, 0, CW, CH);
+                    slides[i].render(offC, 1);
+                    pctx.save();
+                    pctx.globalAlpha = a;
+                    pctx.drawImage(offCvs, 0, 0);
+                    pctx.restore();
                 }
             }
             requestAnimationFrame(tick);
@@ -1032,6 +1119,10 @@ function setDone(n) {
     $(`#step-label-${n}`).style.color = '#86efac';
 }
 
+function truncateWords(text, max) {
+    const w = text.split(/\s+/);
+    return w.length <= max ? text : w.slice(0, max).join(' ') + '…';
+}
 function clamp01(v) { return Math.max(0, Math.min(1, v)); }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
