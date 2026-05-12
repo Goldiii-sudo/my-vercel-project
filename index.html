@@ -167,21 +167,21 @@
 
         .flat-photos-popup {
             position: absolute;
-            left: calc(100% + 12px);
-            top: 0;
+            left: 0;
+            top: calc(100% + 4px);
             z-index: 50;
             background: rgba(15, 23, 42, 0.95);
             border: 1px solid rgba(99, 102, 241, 0.3);
             border-radius: 12px;
             padding: 8px;
-            width: 320px;
+            width: 100%;
             display: none;
             box-shadow: 0 16px 40px rgba(0,0,0,0.6);
         }
         .flat-card:hover .flat-photos-popup { display: block; }
         .flat-photos-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 4px;
         }
         .flat-photos-grid img {
@@ -208,7 +208,7 @@
         }
 
         @media (max-width: 768px) {
-            .flat-photos-popup { left: 0; top: 100%; margin-top: 8px; width: 280px; }
+            .flat-photos-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -610,7 +610,7 @@ function renderFlatsList() {
     list.classList.remove('hidden');
 
     list.innerHTML = flatsDB.map(f => {
-        const thumbs = f.images.slice(0, 9);
+        const thumbs = f.images.slice(0, 12);
         return `
         <div class="flat-card ${selectedFlatId === f.id ? 'selected' : ''}" onclick="selectFlat(${f.id})">
             <div class="flex gap-3">
@@ -628,7 +628,7 @@ function renderFlatsList() {
                 <div class="flat-photos-grid">
                     ${thumbs.map(u => `<img src="${u}" alt="" onerror="this.style.background='#374151'">`).join('')}
                 </div>
-                ${f.images.length > 9 ? '<p class="text-xs text-gray-500 mt-2 text-center">+' + (f.images.length - 9) + ' ещё</p>' : ''}
+                ${f.images.length > 12 ? '<p class="text-xs text-gray-500 mt-2 text-center">+' + (f.images.length - 12) + ' ещё</p>' : ''}
             </div>
         </div>`;
     }).join('');
