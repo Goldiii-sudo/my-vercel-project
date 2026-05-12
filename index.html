@@ -153,6 +153,7 @@
             padding: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
         }
         .flat-card:hover {
             border-color: #6366f1;
@@ -162,6 +163,52 @@
             border-color: #6366f1;
             background: rgba(99, 102, 241, 0.12);
             box-shadow: 0 0 12px rgba(99,102,241,0.2);
+        }
+
+        .flat-photos-popup {
+            position: absolute;
+            left: calc(100% + 12px);
+            top: 0;
+            z-index: 50;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            padding: 8px;
+            width: 320px;
+            display: none;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+        }
+        .flat-card:hover .flat-photos-popup { display: block; }
+        .flat-photos-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+        }
+        .flat-photos-grid img {
+            width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 6px;
+        }
+
+        .template-card {
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid rgba(75, 85, 99, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .template-card:hover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .template-card.selected {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.12);
+            box-shadow: 0 0 12px rgba(99,102,241,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .flat-photos-popup { left: 0; top: 100%; margin-top: 8px; width: 280px; }
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -284,6 +331,14 @@
                                placeholder="Агмашенебели, ул. Галактиона Табидзе, 56">
                     </div>
                 </div>
+            </section>
+
+            <!-- Templates -->
+            <section class="glass-card rounded-2xl p-5 fade-in-up" style="animation-delay:0.18s">
+                <h2 class="text-base font-semibold flex items-center gap-2 mb-4">
+                    <span class="text-lg">🎨</span> Шаблон видео
+                </h2>
+                <div id="templates-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
             </section>
 
             <!-- Video Settings -->
@@ -435,6 +490,16 @@ let musicAudioBuffer = null;
 let flatsDB = [];
 let selectedFlatId = null;
 let activeTab = 'upload';
+let selectedTemplate = 'classic';
+
+const TEMPLATES = [
+    { id: 'classic', name: 'Классика', icon: '🏠', transition: 'slideleft', slideDur: 3, fadeDur: 0.6, titleStyle: 'dark', barColor: 'rgba(20,25,40,0.85)' },
+    { id: 'luxury', name: 'Люкс', icon: '✨', transition: 'dissolve', slideDur: 4, fadeDur: 1.0, titleStyle: 'gold', barColor: 'rgba(30,20,10,0.85)' },
+    { id: 'modern', name: 'Модерн', icon: '🔷', transition: 'zoomin', slideDur: 2.5, fadeDur: 0.5, titleStyle: 'blue', barColor: 'rgba(10,15,40,0.85)' },
+    { id: 'elegant', name: 'Элегант', icon: '🌙', transition: 'fade', slideDur: 3.5, fadeDur: 0.8, titleStyle: 'dark', barColor: 'rgba(15,15,25,0.9)' },
+    { id: 'dynamic', name: 'Динамика', icon: '⚡', transition: 'wipeleft', slideDur: 2, fadeDur: 0.4, titleStyle: 'red', barColor: 'rgba(40,10,10,0.85)' },
+    { id: 'minimal', name: 'Минимал', icon: '◻️', transition: 'circleopen', slideDur: 3, fadeDur: 0.7, titleStyle: 'white', barColor: 'rgba(240,240,240,0.9)' },
+];
 
 // ============================================================
 // DOM
@@ -472,7 +537,35 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#music-input').addEventListener('change', handleMusicFile);
 
     loadFlatsDB();
+    renderTemplates();
 });
+
+// ============================================================
+// TABS
+// ============================================================
+// ============================================================
+// TEMPLATES
+// ============================================================
+function renderTemplates() {
+    const grid = $('#templates-grid');
+    grid.innerHTML = TEMPLATES.map(t => `
+        <div class="template-card ${selectedTemplate === t.id ? 'selected' : ''}" onclick="applyTemplate('${t.id}')">
+            <div class="text-2xl mb-1">${t.icon}</div>
+            <p class="text-sm font-medium text-white">${t.name}</p>
+            <p class="text-xs text-gray-500">${t.transition} • ${t.slideDur}с</p>
+        </div>
+    `).join('');
+}
+
+function applyTemplate(id) {
+    selectedTemplate = id;
+    const t = TEMPLATES.find(x => x.id === id);
+    if (!t) return;
+    $('#transition-type').value = t.transition;
+    $('#slide-duration').value = t.slideDur;
+    $('#fade-duration').value = t.fadeDur;
+    renderTemplates();
+}
 
 // ============================================================
 // TABS
@@ -516,19 +609,29 @@ function renderFlatsList() {
     loading.classList.add('hidden');
     list.classList.remove('hidden');
 
-    list.innerHTML = flatsDB.map(f => `
+    list.innerHTML = flatsDB.map(f => {
+        const thumbs = f.images.slice(0, 9);
+        return `
         <div class="flat-card ${selectedFlatId === f.id ? 'selected' : ''}" onclick="selectFlat(${f.id})">
             <div class="flex gap-3">
                 <img src="${f.images[0]}" alt="" class="w-16 h-12 rounded-lg object-cover flex-shrink-0"
-                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2248%22><rect fill=%22%23374151%22 width=%2264%22 height=%2248%22/></svg>'">
-                <div class="min-w-0">
+                     onerror="this.style.background='#374151'">
+                <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-white truncate">${f.rooms}-комн. в ${f.district || f.city}</p>
                     <p class="text-xs text-gray-400">${f.area} м² • ${(f.price || 0).toLocaleString()} ${f.currency || ''}</p>
                     <p class="text-xs text-gray-600 truncate">${f.address || ''}</p>
                 </div>
+                <span class="text-xs text-gray-600 flex-shrink-0">${f.images.length} фото</span>
             </div>
-        </div>
-    `).join('');
+            <div class="flat-photos-popup">
+                <p class="text-xs text-gray-400 mb-2 font-medium">${f.rooms}-комн. • ${f.images.length} фото</p>
+                <div class="flat-photos-grid">
+                    ${thumbs.map(u => `<img src="${u}" alt="" onerror="this.style.background='#374151'">`).join('')}
+                </div>
+                ${f.images.length > 9 ? '<p class="text-xs text-gray-500 mt-2 text-center">+' + (f.images.length - 9) + ' ещё</p>' : ''}
+            </div>
+        </div>`;
+    }).join('');
 }
 
 async function selectFlat(id) {
@@ -816,7 +919,8 @@ function drawCenteredText(ctx, text, x, y, maxW, lineHeight) {
 }
 
 function drawBottomBar(ctx, h) {
-    ctx.fillStyle = 'rgba(20, 25, 40, 0.85)';
+    const colors = getTemplateColors();
+    ctx.fillStyle = colors.barColor;
     ctx.fillRect(0, CH - h, CW, h);
 }
 
@@ -824,18 +928,32 @@ function drawBottomBar(ctx, h) {
 // SLIDE RENDERERS
 // ============================================================
 
+function getTemplateColors() {
+    const t = TEMPLATES.find(x => x.id === selectedTemplate) || TEMPLATES[0];
+    const styles = {
+        dark:  { accent: '#6366f1', priceColor: '#a5b4fc', subColor: '#94a3b8', overlay: 'rgba(0,0,0,0.55)' },
+        gold:  { accent: '#d4a574', priceColor: '#f0d9b5', subColor: '#c4a882', overlay: 'rgba(20,15,5,0.6)' },
+        blue:  { accent: '#3b82f6', priceColor: '#93c5fd', subColor: '#7dd3fc', overlay: 'rgba(5,10,30,0.6)' },
+        red:   { accent: '#ef4444', priceColor: '#fca5a5', subColor: '#f87171', overlay: 'rgba(30,5,5,0.6)' },
+        white: { accent: '#6366f1', priceColor: '#4f46e5', subColor: '#6b7280', overlay: 'rgba(255,255,255,0.7)' },
+    };
+    return { ...styles[t.titleStyle] || styles.dark, barColor: t.barColor };
+}
+
 function renderTitleSlide(ctx, alpha) {
     const name  = $('#prop-name').value.trim() || 'Объект недвижимости';
     const price = $('#prop-price').value.trim();
     const area  = $('#prop-area').value.trim();
     const dist  = $('#prop-district').value.trim();
+    const colors = getTemplateColors();
+    const isWhite = selectedTemplate === 'minimal';
 
     ctx.save();
     ctx.globalAlpha = alpha;
 
     if (photos.length) {
         drawImageCover(ctx, photos[0].img, 0, 0, CW, CH);
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillStyle = colors.overlay;
         ctx.fillRect(0, 0, CW, CH);
     } else {
         const bg = ctx.createLinearGradient(0,0,CW,CH);
@@ -846,27 +964,23 @@ function renderTitleSlide(ctx, alpha) {
 
     ctx.textAlign = 'center';
 
-    // Accent line
-    ctx.fillStyle = '#6366f1';
+    ctx.fillStyle = colors.accent;
     ctx.fillRect(CW/2-40, CH/2-180, 80, 5);
 
-    // Name
     ctx.font = 'bold 64px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = isWhite ? '#1f2937' : '#fff';
     drawCenteredText(ctx, name, CW/2, CH/2 - 70, CW-100, 72);
 
-    // Price
     if (price) {
         ctx.font = '700 48px Inter, system-ui, sans-serif';
-        ctx.fillStyle = '#a5b4fc';
+        ctx.fillStyle = colors.priceColor;
         drawCenteredText(ctx, price, CW/2, CH/2 + 50, CW-100, 56);
     }
 
-    // Subline
     const sub = [area, dist].filter(Boolean).join(' • ');
     if (sub) {
         ctx.font = '400 24px Inter, system-ui, sans-serif';
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = colors.subColor;
         drawCenteredText(ctx, sub, CW/2, CH/2 + 130, CW-100, 32);
     }
 
