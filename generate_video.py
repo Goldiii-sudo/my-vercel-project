@@ -26,9 +26,18 @@ MUSIC_PATH = os.path.join(os.path.dirname(__file__), "data", "background_music.a
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 
 SLIDE_W, SLIDE_H = 1080, 1080  # Square format (Instagram Reels style)
-SLIDE_DURATION = 4  # seconds per slide
-FADE_DURATION = 0.8  # crossfade seconds
 FPS = 30
+
+# Available ffmpeg xfade transitions
+AVAILABLE_TRANSITIONS = [
+    "fade", "slideleft", "slideright", "slideup", "slidedown",
+    "wipeleft", "wiperight", "wipeup", "wipedown",
+    "dissolve", "pixelize", "radial", "smoothleft", "smoothright",
+    "circleopen", "circleclose", "horzopen", "horzclose",
+    "vertopen", "vertclose", "diagbl", "diagbr", "diagtl", "diagtr",
+    "hlslice", "hrslice", "vuslice", "vdslice",
+    "squeezeh", "squeezev", "zoomin",
+]
 
 
 def nvidia_describe_image(image_url: str, flat_info: dict) -> str:
@@ -224,8 +233,22 @@ def get_flat_from_db(flat_id: int = None) -> dict:
     return flat
 
 
-def generate_video(flat_id: int = None, max_photos: int = 14):
-    """Main function: generate video for a flat listing."""
+def generate_video(flat_id: int = None, max_photos: int = 14,
+                   transition: str = "slideleft", slide_duration: float = 4.0,
+                   fade_duration: float = 0.8, music_path: str = None):
+    """Main function: generate video for a flat listing.
+
+    Args:
+        flat_id: ID of flat in database (None = first flat)
+        max_photos: Max number of photos to include
+        transition: ffmpeg xfade transition name (see AVAILABLE_TRANSITIONS)
+        slide_duration: Seconds each slide is shown
+        fade_duration: Seconds for transition between slides
+        music_path: Path to custom music file (mp3/aac/wav). None = default music
+    """
+    if music_path is None:
+        music_path = MUSIC_PATH
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     frames_dir = os.path.join(OUTPUT_DIR, "frames")
     os.makedirs(frames_dir, exist_ok=True)
@@ -278,7 +301,7 @@ def generate_video(flat_id: int = None, max_photos: int = 14):
     # Build ffmpeg command with xfade transitions
     inputs = []
     for i in range(total_slides):
-        inputs.extend(["-loop", "1", "-t", str(SLIDE_DURATION),
+        inputs.extend(["-loop", "1", "-t", str(slide_duration),
                        "-i", os.path.join(frames_dir, f"slide_{i:03d}.png")])
 
     # xfade chain
@@ -289,8 +312,8 @@ def generate_video(flat_id: int = None, max_photos: int = 14):
         prev = "0:v"
         for i in range(1, total_slides):
             out = f"v{i}" if i < total_slides - 1 else "v"
-            offset = round(i * SLIDE_DURATION - i * FADE_DURATION, 2)
-            parts.append(f"[{prev}][{i}:v]xfade=transition=slideleft:duration={FADE_DURATION}:offset={offset}[{out}]")
+            offset = round(i * slide_duration - i * fade_duration, 2)
+            parts.append(f"[{prev}][{i}:v]xfade=transition={transition}:duration={fade_duration}:offset={offset}[{out}]")
             prev = out
         filter_complex = ";".join(parts)
 
@@ -307,12 +330,12 @@ def generate_video(flat_id: int = None, max_photos: int = 14):
     subprocess.run(cmd_video, check=True, capture_output=True)
 
     # 5. Add background music
-    if os.path.exists(MUSIC_PATH):
-        video_duration = total_slides * SLIDE_DURATION - (total_slides - 1) * FADE_DURATION
+    if os.path.exists(music_path):
+        video_duration = total_slides * slide_duration - (total_slides - 1) * fade_duration
         cmd_audio = [
             "ffmpeg", "-y",
             "-i", output_no_audio,
-            "-i", MUSIC_PATH,
+            "-i", music_path,
             "-c:v", "copy",
             "-c:a", "aac", "-b:a", "128k",
             "-shortest",
@@ -330,11 +353,49 @@ def generate_video(flat_id: int = None, max_photos: int = 14):
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="ReelEstate Video Generator")
+    parser.add_argument("--flat-id", type=int, default=None,
+                        help="ID of flat in database (default: first flat)")
+    parser.add_argument("--max-photos", type=int, default=14,
+                        help="Max photos to include (default: 14)")
+    parser.add_argument("--transition", type=str, default="slideleft",
+                        choices=AVAILABLE_TRANSITIONS,
+                        help="Transition effect between slides (default: slideleft)")
+    parser.add_argument("--slide-duration", type=float, default=4.0,
+                        help="Duration of each slide in seconds (default: 4.0)")
+    parser.add_argument("--fade-duration", type=float, default=0.8,
+                        help="Duration of transition in seconds (default: 0.8)")
+    parser.add_argument("--music", type=str, default=None,
+                        help="Path to custom background music file (mp3/aac/wav)")
+    parser.add_argument("--no-music", action="store_true",
+                        help="Generate video without background music")
+    parser.add_argument("--list-transitions", action="store_true",
+                        help="List all available transitions and exit")
+
+    args = parser.parse_args()
+
+    if args.list_transitions:
+        print("Available transitions:")
+        for t in AVAILABLE_TRANSITIONS:
+            print(f"  {t}")
+        sys.exit(0)
+
     if not NVIDIA_API_KEY:
         print("Error: Set NVIDIA_API_KEY environment variable")
         sys.exit(1)
 
-    flat_id = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    max_photos = int(sys.argv[2]) if len(sys.argv) > 2 else 14
+    if args.no_music:
+        music = "__no_music__"  # non-existent path, skips music
+    else:
+        music = args.music  # None = default music
 
-    generate_video(flat_id, max_photos)
+    generate_video(
+        flat_id=args.flat_id,
+        max_photos=args.max_photos,
+        transition=args.transition,
+        slide_duration=args.slide_duration,
+        fade_duration=args.fade_duration,
+        music_path=music,
+    )
