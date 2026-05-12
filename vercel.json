@@ -5,9 +5,25 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "data/flats.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/describe.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/data/(.*)",
+      "dest": "/data/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "/index.html"
